@@ -26,6 +26,7 @@ yarn-error.log
 /scratch
 /cbtgaruda dan database
 *.sql
+!database/cbt_sample.sql
 *.zip
 *.tar.gz
 powershell.cmd

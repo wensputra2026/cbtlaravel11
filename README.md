@@ -82,9 +82,41 @@ php artisan key:generate
 # Konfigurasi database di file .env, kemudian jalankan migrasi
 php artisan migrate
 
+# [OPSI 1] Inisialisasi akun default via Seeder
+php artisan db:seed
+
+# [OPSI 2] Atau impor database sampel lengkap (soal ujian, master data, jadwal & rombel):
+# mysql -u root -p nama_database < database/cbt_sample.sql
+
 # Jalankan server pengembangan
 php artisan serve
 ```
+
+---
+
+## 🔑 Akun Default Login (Default Credentials)
+
+Setelah menjalankan `php artisan db:seed` atau mengimpor `database/cbt_sample.sql`, Anda dapat masuk menggunakan akun default berikut:
+
+| Peran (Role) | Username | Password | Keterangan & Akses Portal |
+| :--- | :--- | :--- | :--- |
+| **Administrator CBT 1** | `admin` | `admin123` | Akses penuh dashboard proktor & admin (`/admin/dashboard` atau `/auth`) |
+| **Administrator CBT 2** | `adminCBT` | `admin123` | Akun administrator utama pengelola CBT |
+| **Guru Pengampu** | `guru` | `123456` | Portal guru, penugasan mapel, wali kelas, & koreksi (`/guru`) |
+| **Peserta Siswa** | `siswa` | `123456` | Portal ujian siswa (CBT Exam Room) |
+
+---
+
+## 💾 Database Sampel (`database/cbt_sample.sql`)
+
+Repository ini telah dilengkapi dengan basis data sampel siap pakai di folder [`database/cbt_sample.sql`](database/cbt_sample.sql) yang berisi:
+- 42 tabel skema InnoDB berformat `ROW_FORMAT=DYNAMIC`.
+- Profil sekolah (SMAN Benlutu), Tahun Pelajaran aktif (2025/2026 Genap).
+- Master Guru & penugasan wali kelas / jabatan guru.
+- Master Kelas & Rombel lengkap (Kelas X, XI, XII).
+- Master Mata Pelajaran (Kurikulum Merdeka + Pilihan).
+- Bank Soal sampel multi-tipe (Pilihan Ganda, PG Kompleks, Isian, Menjodohkan, Esai).
+- Jadwal & Sesi Ruang Ujian.
 
 ---
 
