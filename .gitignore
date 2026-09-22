@@ -35,4 +35,10 @@ Akun Admin Utama.txt
 !/storage/framework/views/.gitignore
 /storage/logs/*
 !/storage/logs/.gitignore
+
+# Bootstrap Cache
+/bootstrap/cache/*.php
+!/bootstrap/cache/.gitignore
+
 scratch/
+
