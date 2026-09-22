@@ -51,4 +51,26 @@ class MasterKelas extends Model
     {
         return $this->hasMany(KelasSiswa::class, 'id_kelas', 'id_kelas');
     }
+
+    /**
+     * Relasi ke Guru Wali Kelas.
+     */
+    public function waliKelas(): BelongsTo
+    {
+        return $this->belongsTo(MasterGuru::class, 'guru_id', 'id_guru');
+    }
+
+    /**
+     * Hitung total siswa terdaftar di kelas ini.
+     */
+    public function getJumlahSiswaCountAttribute(): int
+    {
+        if (!empty($this->jumlah_siswa)) {
+            $decoded = json_decode($this->jumlah_siswa, true);
+            if (is_array($decoded)) {
+                return count($decoded);
+            }
+        }
+        return $this->kelasSiswa()->count();
+    }
 }

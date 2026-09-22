@@ -82,6 +82,10 @@ Route::middleware(['auth'])->group(function () {
 
             Route::get('/kelas', [MasterDataController::class, 'indexKelas'])->name('kelas');
             Route::post('/kelas', [MasterDataController::class, 'storeKelas'])->name('kelas.store');
+            Route::put('/kelas/{id}', [MasterDataController::class, 'updateKelas'])->name('kelas.update');
+            Route::post('/kelas/update/{id}', [MasterDataController::class, 'updateKelas'])->name('kelas.update.post');
+            Route::delete('/kelas/{id}', [MasterDataController::class, 'destroyKelas'])->name('kelas.destroy');
+            Route::post('/kelas/delete/{id}', [MasterDataController::class, 'destroyKelas'])->name('kelas.delete.post');
 
             Route::get('/mapel', [MasterDataController::class, 'indexMapel'])->name('mapel');
             Route::post('/mapel', [MasterDataController::class, 'storeMapel'])->name('mapel.store');

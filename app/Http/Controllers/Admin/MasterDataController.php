@@ -161,14 +161,17 @@ class MasterDataController extends Controller
     }
 
     // =========================================================================
-    // 3. KELAS & ROMBEL
+    // 3. KELAS & ROMBEL (Authentic Garuda CBT Datakelas Parity)
     // =========================================================================
     public function indexKelas(): View
     {
-        $kelasList = MasterKelas::with(['jurusan'])->orderBy('level_id', 'asc')->orderBy('nama_kelas', 'asc')->get();
-        $jurusanList = MasterJurusan::all();
+        $kelasList   = MasterKelas::with(['jurusan', 'waliKelas'])->orderBy('level_id', 'asc')->orderBy('nama_kelas', 'asc')->get();
+        $jurusanList = MasterJurusan::orderBy('nama_jurusan', 'asc')->get();
+        $guruList    = MasterGuru::orderBy('nama_guru', 'asc')->get();
+        $tp_active   = MasterTp::activeTp() ?? MasterTp::first();
+        $smt_active  = MasterSmt::activeSmt() ?? MasterSmt::first();
 
-        return view('admin.master.kelas', compact('kelasList', 'jurusanList'));
+        return view('admin.master.kelas', compact('kelasList', 'jurusanList', 'guruList', 'tp_active', 'smt_active'));
     }
 
     public function storeKelas(Request $request): RedirectResponse
@@ -179,8 +182,52 @@ class MasterDataController extends Controller
             'level_id'   => 'required|integer',
         ]);
 
-        MasterKelas::create($request->only('nama_kelas', 'kode_kelas', 'level_id', 'jurusan_id'));
-        return back()->with('success', 'Kelas / Rombel berhasil ditambahkan.');
+        $tp_active  = MasterTp::activeTp() ?? MasterTp::first();
+        $smt_active = MasterSmt::activeSmt() ?? MasterSmt::first();
+
+        MasterKelas::create([
+            'nama_kelas'   => trim($request->input('nama_kelas')),
+            'kode_kelas'   => strtoupper(trim($request->input('kode_kelas'))),
+            'level_id'     => (int)$request->input('level_id'),
+            'jurusan_id'   => $request->input('jurusan_id') ?: null,
+            'guru_id'      => $request->input('guru_id') ?: 0,
+            'id_tp'        => $tp_active?->id_tp ?? 1,
+            'id_smt'       => $smt_active?->id_smt ?? 1,
+            'set_siswa'    => 0,
+        ]);
+
+        return back()->with('success', 'Kelas / Rombel baru berhasil ditambahkan.');
+    }
+
+    public function updateKelas(Request $request, int $id): RedirectResponse
+    {
+        $request->validate([
+            'nama_kelas' => 'required|string|max:50',
+            'kode_kelas' => 'required|string|max:20',
+            'level_id'   => 'required|integer',
+        ]);
+
+        $kelas = MasterKelas::findOrFail($id);
+        $kelas->update([
+            'nama_kelas'   => trim($request->input('nama_kelas')),
+            'kode_kelas'   => strtoupper(trim($request->input('kode_kelas'))),
+            'level_id'     => (int)$request->input('level_id'),
+            'jurusan_id'   => $request->input('jurusan_id') ?: null,
+            'guru_id'      => $request->input('guru_id') ?: 0,
+        ]);
+
+        return back()->with('success', 'Data Kelas / Rombel berhasil diperbarui.');
+    }
+
+    public function destroyKelas(int $id): RedirectResponse
+    {
+        $kelas = MasterKelas::findOrFail($id);
+
+        // Hapus relasi siswa di kelas ini jika ada
+        $kelas->kelasSiswa()->delete();
+        $kelas->delete();
+
+        return back()->with('success', 'Data Kelas berhasil dihapus.');
     }
 
     // =========================================================================
