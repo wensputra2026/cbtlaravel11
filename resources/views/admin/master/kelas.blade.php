@@ -4,90 +4,7 @@
 @section('page_title', 'Kelas & Rombongan Belajar')
 
 @section('content')
-<div class="space-y-5" x-data="{
-    // Filter State
-    searchQuery: '',
-    filterLevel: '',
-    filterJurusan: '',
-
-    // Modal State
-    openModal: false,
-    isEdit: false,
-    actionUrl: '{{ route('admin.master.kelas.store') }}',
-    form: {
-        id_kelas: '',
-        level_id: '10',
-        jurusan_id: '',
-        kode_kelas: '',
-        nama_kelas: '',
-        guru_id: '0'
-    },
-
-    openAddModal() {
-        this.isEdit = false;
-        this.actionUrl = '{{ route('admin.master.kelas.store') }}';
-        this.form = {
-            id_kelas: '',
-            level_id: '10',
-            jurusan_id: '{{ $jurusanList->first()?->id_jurusan ?? '' }}',
-            kode_kelas: '',
-            nama_kelas: '',
-            guru_id: '0'
-        };
-        this.openModal = true;
-    },
-
-    openEditModal(item) {
-        this.isEdit = true;
-        this.actionUrl = '{{ url('admin/master/kelas/update') }}/' + item.id_kelas;
-        this.form = {
-            id_kelas: item.id_kelas,
-            level_id: String(item.level_id || '10'),
-            jurusan_id: String(item.jurusan_id || ''),
-            kode_kelas: item.kode_kelas,
-            nama_kelas: item.nama_kelas,
-            guru_id: String(item.guru_id || '0')
-        };
-        this.openModal = true;
-    },
-
-    confirmDeleteKelas(id, nama) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                title: 'Hapus Rombel?',
-                text: 'Apakah Anda yakin ingin menghapus kelas "' + nama + '"? Aksi ini tidak dapat dibatalkan.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#e11d48',
-                cancelButtonColor: '#64748b',
-                confirmButtonText: '<i class="fa fa-trash-alt mr-1"></i> Ya, Hapus!',
-                cancelButtonText: 'Batal',
-                reverseButtons: true
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    var form = document.getElementById('deleteKelasForm');
-                    form.action = '{{ url("admin/master/kelas/delete") }}/' + id;
-                    form.submit();
-                }
-            });
-        } else {
-            if (confirm('Apakah Anda yakin ingin menghapus kelas "' + nama + '"?')) {
-                var form = document.getElementById('deleteKelasForm');
-                form.action = '{{ url("admin/master/kelas/delete") }}/' + id;
-                form.submit();
-            }
-        }
-    },
-
-    // Check visibility based on filters
-    rowMatches(level, jurusanId, nama, kode) {
-        const q = this.searchQuery.toLowerCase();
-        const matchesSearch = !q || nama.toLowerCase().includes(q) || kode.toLowerCase().includes(q);
-        const matchesLevel = !this.filterLevel || String(level) === String(this.filterLevel);
-        const matchesJurusan = !this.filterJurusan || String(jurusanId) === String(this.filterJurusan);
-        return matchesSearch && matchesLevel && matchesJurusan;
-    }
-}">
+<div class="space-y-5" x-data="kelasManager()">
 
     <!-- Flash Notifications -->
     @if(session('success'))
@@ -373,3 +290,94 @@
 
 </div>
 @endsection
+
+@push('scripts')
+<script>
+function kelasManager() {
+    return {
+        // Filter State
+        searchQuery: '',
+        filterLevel: '',
+        filterJurusan: '',
+
+        // Modal State
+        openModal: false,
+        isEdit: false,
+        actionUrl: '{{ route('admin.master.kelas.store') }}',
+        form: {
+            id_kelas: '',
+            level_id: '10',
+            jurusan_id: '',
+            kode_kelas: '',
+            nama_kelas: '',
+            guru_id: '0'
+        },
+
+        openAddModal() {
+            this.isEdit = false;
+            this.actionUrl = '{{ route('admin.master.kelas.store') }}';
+            this.form = {
+                id_kelas: '',
+                level_id: '10',
+                jurusan_id: '{{ $jurusanList->first()?->id_jurusan ?? '' }}',
+                kode_kelas: '',
+                nama_kelas: '',
+                guru_id: '0'
+            };
+            this.openModal = true;
+        },
+
+        openEditModal(item) {
+            this.isEdit = true;
+            this.actionUrl = '{{ url('admin/master/kelas/update') }}/' + item.id_kelas;
+            this.form = {
+                id_kelas: item.id_kelas,
+                level_id: String(item.level_id || '10'),
+                jurusan_id: String(item.jurusan_id || ''),
+                kode_kelas: item.kode_kelas,
+                nama_kelas: item.nama_kelas,
+                guru_id: String(item.guru_id || '0')
+            };
+            this.openModal = true;
+        },
+
+        confirmDeleteKelas(id, nama) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: 'Hapus Rombel?',
+                    text: 'Apakah Anda yakin ingin menghapus kelas "' + nama + '"? Aksi ini tidak dapat dibatalkan.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#e11d48',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: '<i class="fa fa-trash-alt mr-1"></i> Ya, Hapus!',
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        var form = document.getElementById('deleteKelasForm');
+                        form.action = '{{ url("admin/master/kelas/delete") }}/' + id;
+                        form.submit();
+                    }
+                });
+            } else {
+                if (confirm('Apakah Anda yakin ingin menghapus kelas "' + nama + '"?')) {
+                    var form = document.getElementById('deleteKelasForm');
+                    form.action = '{{ url("admin/master/kelas/delete") }}/' + id;
+                    form.submit();
+                }
+            }
+        },
+
+        // Check visibility based on filters
+        rowMatches(level, jurusanId, nama, kode) {
+            const q = this.searchQuery.toLowerCase();
+            const matchesSearch = !q || nama.toLowerCase().includes(q) || kode.toLowerCase().includes(q);
+            const matchesLevel = !this.filterLevel || String(level) === String(this.filterLevel);
+            const matchesJurusan = !this.filterJurusan || String(jurusanId) === String(this.filterJurusan);
+            return matchesSearch && matchesLevel && matchesJurusan;
+        }
+    };
+}
+</script>
+@endpush
