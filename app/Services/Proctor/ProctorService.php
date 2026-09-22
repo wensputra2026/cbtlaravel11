@@ -102,29 +102,30 @@ class ProctorService
             }
 
             $listPeserta[] = [
-                'id_siswa'       => $siswaId,
-                'nisn'           => $siswa->nisn,
-                'nis'            => $siswa->nis,
-                'nama'           => $siswa->nama,
-                'kelas'          => $siswa->kelasSiswa->first()->kelas->nama_kelas ?? '-',
-                'status_code'    => $statusCode,
-                'status_text'    => $statusUjian,
-                'mulai'          => $mulai,
-                'selesai'        => $selesai,
-                'sisa_menit'     => $sisaMenit,
-                'terjawab'       => $terjawabCount,
-                'total_soal'     => $totalSoal,
-                'pelanggaran'    => $pelanggaran,
-                'device_locked'  => $isDeviceLocked,
-                'skor_pg'        => $nilai->pg_nilai ?? '-',
-                'skor_total'     => $nilai ? (round($nilai->pg_nilai + $nilai->kompleks_nilai + $nilai->jodohkan_nilai + $nilai->isian_nilai + $nilai->essai_nilai, 2)) : '-',
+                'id_siswa'              => $siswaId,
+                'nisn'                  => $siswa->nisn,
+                'nis'                   => $siswa->nis,
+                'nama'                  => $siswa->nama,
+                'kelas'                 => $siswa->kelasSiswa->first()->kelas->nama_kelas ?? '-',
+                'status_code'           => $statusCode,
+                'status_text'           => $statusUjian,
+                'mulai'                 => $mulai,
+                'selesai'               => $selesai,
+                'sisa_menit'            => $sisaMenit,
+                'sisa_waktu_formatted'  => sprintf('%02d:%02d:00', floor($sisaMenit / 60), $sisaMenit % 60),
+                'terjawab'              => $terjawabCount,
+                'total_soal'            => $totalSoal,
+                'pelanggaran'           => $pelanggaran,
+                'device_locked'         => $isDeviceLocked,
+                'skor_pg'               => $nilai->pg_nilai ?? '-',
+                'skor_total'            => $nilai ? (round($nilai->pg_nilai + $nilai->kompleks_nilai + $nilai->jodohkan_nilai + $nilai->isian_nilai + $nilai->essai_nilai, 2)) : '-',
             ];
         }
 
         $totalPeserta = count($listPeserta);
-        $mengerjakan = count(array_filter($listPeserta, fn($p) => $p['status_code'] === 1));
-        $selesai = count(array_filter($listPeserta, fn($p) => $p['status_code'] === 2));
-        $pelanggaran = count(array_filter($listPeserta, fn($p) => $p['pelanggaran'] > 0));
+        $mengerjakanCount = count(array_filter($listPeserta, fn($p) => $p['status_code'] === 1));
+        $selesaiCount = count(array_filter($listPeserta, fn($p) => $p['status_code'] === 2));
+        $pelanggaranCount = count(array_filter($listPeserta, fn($p) => $p['pelanggaran'] > 0));
 
         return [
             'jadwal' => [
@@ -134,19 +135,22 @@ class ProctorService
                 'mapel'        => $bank->mapel->nama_mapel ?? '-',
                 'durasi'       => (int) $jadwal->durasi_ujian,
                 'durasi_menit' => (int) $jadwal->durasi_ujian,
+                'total_soal'   => $totalSoal,
+            ],
+            'summary' => [
+                'total'         => $totalPeserta,
+                'total_peserta' => $totalPeserta,
+                'belum_mulai'   => count(array_filter($listPeserta, fn($p) => $p['status_code'] === 0)),
+                'mengerjakan'   => $mengerjakanCount,
+                'sedang_ujian'  => $mengerjakanCount,
+                'selesai'       => $selesaiCount,
+                'pelanggaran'   => $pelanggaranCount,
             ],
             'statistik' => [
                 'total'        => $totalPeserta,
-                'mengerjakan'  => $mengerjakan,
-                'selesai'      => $selesai,
-                'pelanggaran'  => $pelanggaran,
-            ],
-            'summary' => [
-                'total_peserta' => $totalPeserta,
-                'belum_mulai'   => count(array_filter($listPeserta, fn($p) => $p['status_code'] === 0)),
-                'sedang_ujian'  => $mengerjakan,
-                'selesai'       => $selesai,
-                'pelanggaran'   => $pelanggaran,
+                'mengerjakan'  => $mengerjakanCount,
+                'selesai'      => $selesaiCount,
+                'pelanggaran'  => $pelanggaranCount,
             ],
             'peserta' => $listPeserta,
         ];

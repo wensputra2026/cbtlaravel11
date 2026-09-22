@@ -5,13 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Live Monitoring: {{ $jadwal->bankSoal->bank_nama ?? 'Ujian' }} | {{ $appSetting->nama_aplikasi_tampil }}</title>
+    <link rel="icon" type="image/png" href="{{ $appSetting->favicon_url ?? asset('favicon.png') }}">
+    <link rel="shortcut icon" href="{{ $appSetting->favicon_url ?? asset('favicon.png') }}">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/sweetalert2.min.css') }}">
+    <script src="{{ asset('assets/vendor/sweetalert2.all.min.js') }}"></script>
     <script defer src="{{ asset('assets/vendor/alpine.min.js') }}"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; }
-        body { background-color: #0b1120; color: #f8fafc; min-height: 100vh; }
+        body { background-color: #f8fafc; color: #0f172a; min-height: 100vh; }
         .navbar {
-            background: #1e293b;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
             padding: 14px 28px;
             display: flex;
             align-items: center;
@@ -19,6 +23,7 @@
             position: sticky;
             top: 0;
             z-index: 50;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
         .container { max-width: 1300px; margin: 28px auto; padding: 0 20px; }
         
@@ -30,18 +35,19 @@
             margin-bottom: 24px;
         }
         .stat-card {
-            background: #1e293b;
-            border: 1px solid #334155;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 14px;
             padding: 18px 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
-        .stat-label { font-size: 13px; color: #94a3b8; margin-bottom: 6px; font-weight: 600; }
-        .stat-value { font-size: 28px; font-weight: 800; color: #fff; }
+        .stat-label { font-size: 13px; color: #64748b; margin-bottom: 6px; font-weight: 600; }
+        .stat-value { font-size: 28px; font-weight: 800; color: #0f172a; }
 
         /* Filter & Search Bar */
         .toolbar {
-            background: #1e293b;
-            border: 1px solid #334155;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 14px;
             padding: 16px 20px;
             margin-bottom: 20px;
@@ -50,23 +56,24 @@
             justify-content: space-between;
             gap: 16px;
             flex-wrap: wrap;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
         .search-input {
-            background: #0f172a;
-            border: 1.5px solid #334155;
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
             border-radius: 8px;
             padding: 8px 14px;
-            color: #fff;
+            color: #0f172a;
             font-size: 13px;
             outline: none;
             width: 280px;
         }
-        .search-input:focus { border-color: #38bdf8; }
+        .search-input:focus { border-color: #2563eb; }
         .filter-group { display: flex; gap: 8px; }
         .filter-btn {
-            background: #0f172a;
-            border: 1px solid #334155;
-            color: #94a3b8;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #475569;
             padding: 6px 14px;
             border-radius: 8px;
             font-size: 12px;
@@ -81,16 +88,17 @@
 
         /* Monitoring Table */
         .table-card {
-            background: #1e293b;
-            border: 1px solid #334155;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 14px;
             padding: 20px;
             overflow-x: auto;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th { text-align: left; padding: 12px 14px; background: #0f172a; color: #94a3b8; font-weight: 600; }
-        td { padding: 12px 14px; border-bottom: 1px solid #334155; color: #cbd5e1; vertical-align: middle; }
-        tr:hover td { background: rgba(255, 255, 255, 0.02); }
+        th { text-align: left; padding: 12px 14px; background: #f8fafc; color: #475569; font-weight: 700; border-bottom: 1px solid #e2e8f0; }
+        td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
+        tr:hover td { background: #f8fafc; }
 
         .badge-status {
             padding: 4px 10px;
@@ -99,13 +107,13 @@
             font-weight: 700;
             display: inline-block;
         }
-        .status-0 { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
-        .status-1 { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
-        .status-2 { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .status-0 { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+        .status-1 { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        .status-2 { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
 
         .badge-violation {
-            background: rgba(239, 68, 68, 0.2);
-            color: #f87171;
+            background: #fee2e2;
+            color: #b91c1c;
             padding: 3px 8px;
             border-radius: 4px;
             font-weight: 700;
@@ -196,13 +204,13 @@
                     <template x-for="p in filteredPeserta" :key="p.id_siswa">
                         <tr>
                             <td>
-                                <strong style="color: #f1f5f9;" x-text="p.nisn || '-'"></strong><br>
+                                <strong style="color: #0f172a;" x-text="p.nisn || '-'"></strong><br>
                                 <span style="font-size: 11px; color: #64748b;" x-text="p.nis || ''"></span>
                             </td>
                             <td>
-                                <strong style="color: #fff;" x-text="p.nama"></strong>
+                                <strong style="color: #0f172a;" x-text="p.nama"></strong>
                                 <template x-if="p.device_locked">
-                                    <span style="display: block; font-size: 10px; color: #38bdf8;">🔒 Device Terkunci</span>
+                                    <span style="display: block; font-size: 10px; color: #0284c7; font-weight: 600;">🔒 Device Terkunci</span>
                                 </template>
                             </td>
                             <td x-text="p.kelas"></td>
@@ -210,12 +218,12 @@
                                 <span class="badge-status" :class="'status-' + p.status_code" x-text="p.status_text"></span>
                             </td>
                             <td>
-                                <span style="font-weight: 700; color: #60a5fa;" x-text="p.terjawab"></span>
+                                <span style="font-weight: 700; color: #2563eb;" x-text="p.terjawab"></span>
                                 <span style="color: #64748b;"> / </span>
                                 <span x-text="p.total_soal"></span>
                             </td>
                             <td>
-                                <span :style="{ color: p.sisa_menit < 10 ? '#ef4444' : '#f1f5f9', fontWeight: 600 }" x-text="p.sisa_menit + ' Menit'"></span>
+                                <span :style="{ color: p.sisa_menit < 10 ? '#ef4444' : '#0f172a', fontWeight: 600 }" x-text="p.sisa_menit + ' Menit'"></span>
                             </td>
                             <td>
                                 <template x-if="p.pelanggaran > 0">
@@ -294,50 +302,107 @@
                 },
 
                 async resetLogin(siswaId) {
-                    if (!confirm('Yakin ingin mereset login siswa ini agar dapat masuk di perangkat lain?')) return;
+                    const res = await Swal.fire({
+                        title: 'Reset Login Siswa?',
+                        text: 'Yakin ingin mereset login siswa ini agar dapat masuk kembali dari perangkat lain?',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#0284c7',
+                        cancelButtonColor: '#94a3b8',
+                        confirmButtonText: 'Ya, Reset Login',
+                        cancelButtonText: 'Batal',
+                        reverseButtons: true
+                    });
+                    if (!res.isConfirmed) return;
+
                     try {
                         const csrf = document.querySelector('meta[name="csrf-token"]').content;
-                        const res = await fetch(`/proctor/api/reset-login/${this.jadwalId}/${siswaId}`, {
+                        const response = await fetch(`/proctor/api/reset-login/${this.jadwalId}/${siswaId}`, {
                             method: 'POST',
                             headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' }
                         });
-                        const data = await res.json();
-                        alert(data.message);
+                        const data = await response.json();
+                        Swal.fire({
+                            title: 'Berhasil!',
+                            text: data.message,
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
                     } catch (e) {
-                        alert('Gagal mereset login: ' + e.message);
+                        Swal.fire('Gagal!', 'Gagal mereset login: ' + e.message, 'error');
                     }
                 },
 
                 async addExtraTime(siswaId) {
-                    const extra = prompt('Masukkan jumlah menit tambahan untuk siswa ini:', '10');
-                    if (!extra || isNaN(extra)) return;
+                    const { value: extra } = await Swal.fire({
+                        title: 'Tambah Waktu Ujian',
+                        input: 'number',
+                        inputValue: 10,
+                        inputLabel: 'Durasi tambahan (menit):',
+                        inputAttributes: { min: 1, max: 180, step: 1 },
+                        showCancelButton: true,
+                        confirmButtonColor: '#16a34a',
+                        cancelButtonColor: '#94a3b8',
+                        confirmButtonText: 'Tambahkan',
+                        cancelButtonText: 'Batal',
+                        reverseButtons: true,
+                        inputValidator: (val) => {
+                            if (!val || parseInt(val) <= 0) return 'Masukkan jumlah menit yang valid (minimal 1)!';
+                        }
+                    });
+                    if (!extra) return;
 
                     try {
                         const csrf = document.querySelector('meta[name="csrf-token"]').content;
-                        const res = await fetch(`/proctor/api/extra-time/${this.jadwalId}/${siswaId}`, {
+                        const response = await fetch(`/proctor/api/extra-time/${this.jadwalId}/${siswaId}`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
                             body: JSON.stringify({ minutes: parseInt(extra) })
                         });
-                        const data = await res.json();
-                        alert(data.message);
+                        const data = await response.json();
+                        Swal.fire({
+                            title: 'Waktu Ditambahkan!',
+                            text: data.message,
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
                     } catch (e) {
-                        alert('Gagal menambah waktu: ' + e.message);
+                        Swal.fire('Gagal!', 'Gagal menambah waktu: ' + e.message, 'error');
                     }
                 },
 
                 async forceSubmit(siswaId) {
-                    if (!confirm('PENTING: Yakin ingin memaksa siswa ini menyelesaikan ujian sekarang juga?')) return;
+                    const res = await Swal.fire({
+                        title: 'Paksa Selesai Ujian?',
+                        text: 'PENTING: Yakin ingin memaksa siswa ini menyelesaikan ujian sekarang juga? Lembar ujian akan langsung dikirim dan ditutup.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#dc2626',
+                        cancelButtonColor: '#94a3b8',
+                        confirmButtonText: 'Ya, Paksa Selesai',
+                        cancelButtonText: 'Batal',
+                        reverseButtons: true
+                    });
+                    if (!res.isConfirmed) return;
+
                     try {
                         const csrf = document.querySelector('meta[name="csrf-token"]').content;
-                        const res = await fetch(`/proctor/api/force-submit/${this.jadwalId}/${siswaId}`, {
+                        const response = await fetch(`/proctor/api/force-submit/${this.jadwalId}/${siswaId}`, {
                             method: 'POST',
                             headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' }
                         });
-                        const data = await res.json();
-                        alert(data.message);
+                        const data = await response.json();
+                        Swal.fire({
+                            title: 'Ujian Selesai!',
+                            text: data.message,
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
                     } catch (e) {
-                        alert('Gagal menyelesaikan ujian: ' + e.message);
+                        Swal.fire('Gagal!', 'Gagal menyelesaikan ujian: ' + e.message, 'error');
                     }
                 }
             }

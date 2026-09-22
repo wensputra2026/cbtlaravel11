@@ -52,6 +52,15 @@ class Setting extends Model
         return $this->resolveImagePath($this->logo_kiri, 'uploads/settings/logo_kiri.png');
     }
 
+    public function getFaviconUrlAttribute(): string
+    {
+        $url = $this->getLogoKiriUrlAttribute();
+        $ver = file_exists(public_path('uploads/settings/logo_kiri.png')) 
+            ? filemtime(public_path('uploads/settings/logo_kiri.png')) 
+            : time();
+        return $url . '?v=' . $ver;
+    }
+
     public function getLogoKananUrlAttribute(): string
     {
         return $this->resolveImagePath($this->logo_kanan, 'uploads/settings/logo_kanan.png');

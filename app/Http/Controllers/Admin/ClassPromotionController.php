@@ -62,8 +62,6 @@ class ClassPromotionController extends Controller
             $legacySiswa = collect();
         }
 
-        $allSiswaList = MasterSiswa::orderBy('nama', 'asc')->select('id_siswa', 'nama', 'nisn', 'nis')->get();
-
         return view('admin.master.kenaikan_kelas', compact(
             'allYears',
             'activeYear',
@@ -71,8 +69,7 @@ class ClassPromotionController extends Controller
             'kelasList',
             'selectedKelasId',
             'enrollments',
-            'legacySiswa',
-            'allSiswaList'
+            'legacySiswa'
         ));
     }
 
@@ -137,22 +134,13 @@ class ClassPromotionController extends Controller
         $request->validate([
             'tahun_ajaran_id' => 'required|integer',
             'kelas_tujuan_id' => 'required|integer',
+            'siswa_ids'       => 'required|array|min:1',
             'alasan'          => 'nullable|string|max:255',
         ]);
 
-        $siswaIds = [];
-        if ($request->filled('siswa_id')) {
-            $siswaIds = [(int) $request->input('siswa_id')];
-        } elseif ($request->has('siswa_ids')) {
-            $siswaIds = array_map('intval', (array) $request->input('siswa_ids'));
-        }
-
-        if (empty($siswaIds)) {
-            return back()->with('error', 'Silakan pilih atau cari siswa yang ingin dimutasi / dipindahkan.');
-        }
-
         $tahunAjaranId = (int) $request->input('tahun_ajaran_id');
         $kelasTujuanId = (int) $request->input('kelas_tujuan_id');
+        $siswaIds      = $request->input('siswa_ids');
         $alasan        = $request->input('alasan', 'Pindah rombel kelas');
 
         $kelasTujuan = MasterKelas::find($kelasTujuanId);

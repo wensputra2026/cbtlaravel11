@@ -19,25 +19,11 @@ class ProctorController extends Controller
     /**
      * Halaman daftar jadwal ujian yang dapat dipantau oleh proktor.
      */
-    public function index(Request $request): View
+    public function index(): View
     {
-        $search = $request->input('q');
-        $query = CbtJadwal::with(['bankSoal.mapel'])->orderBy('id_jadwal', 'desc');
-
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('id_jadwal', $search)
-                  ->orWhereHas('bankSoal', function ($bq) use ($search) {
-                      $bq->where('bank_nama', 'like', "%{$search}%")
-                         ->orWhere('bank_kode', 'like', "%{$search}%")
-                         ->orWhereHas('mapel', function ($mq) use ($search) {
-                             $mq->where('nama_mapel', 'like', "%{$search}%");
-                         });
-                  });
-            });
-        }
-
-        $jadwals = $query->paginate(10)->withQueryString();
+        $jadwals = CbtJadwal::with(['bankSoal.mapel'])
+            ->orderBy('id_jadwal', 'desc')
+            ->get();
 
         $currentToken = $this->tokenService->getActiveToken();
         $tokenTtl = $this->tokenService->getTokenTtl();
@@ -46,7 +32,6 @@ class ProctorController extends Controller
             'jadwals'      => $jadwals,
             'currentToken' => $currentToken,
             'tokenTtl'     => $tokenTtl,
-            'search'       => $search,
         ]);
     }
 

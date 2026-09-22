@@ -51,12 +51,4 @@ class MasterKelas extends Model
     {
         return $this->hasMany(KelasSiswa::class, 'id_kelas', 'id_kelas');
     }
-
-    /**
-     * Relasi ke wali kelas (master_guru).
-     */
-    public function waliKelas(): BelongsTo
-    {
-        return $this->belongsTo(MasterGuru::class, 'guru_id', 'id_guru');
-    }
 }

@@ -9,11 +9,7 @@ use App\Models\CbtNilai;
 use App\Models\CbtSoal;
 use App\Models\CbtSoalSiswa;
 use App\Models\KelasSiswa;
-use App\Models\MasterMapel;
 use App\Models\MasterSiswa;
-use App\Models\RefTahunAjaran;
-use App\Models\SiswaMapelPilihan;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 
@@ -21,9 +17,7 @@ class ExamSessionService
 {
     public function __construct(
         protected CbtTokenService $tokenService,
-        protected ExamGradingService $gradingService,
-        protected ExamAnswerBufferService $bufferService,
-        protected DeterministicShuffleService $shuffleService
+        protected ExamGradingService $gradingService
     ) {}
 
     /**
@@ -39,23 +33,6 @@ class ExamSessionService
         // Ambil ID kelas aktif siswa
         $kelasIds = $siswa->kelasSiswa->pluck('id_kelas')->toArray();
 
-        // Ambil tahun ajaran aktif untuk filter mapel pilihan
-        $activeTaId = RefTahunAjaran::active()->value('id');
-
-        // Ambil daftar ID mapel pilihan yang diambil siswa pada tahun ajaran aktif
-        $enrolledMapelIds = SiswaMapelPilihan::where('siswa_id', $siswaId)
-            ->when($activeTaId, fn($q) => $q->where('tahun_ajaran_id', $activeTaId))
-            ->pluck('mapel_id')
-            ->toArray();
-
-        // Fallback cek atribut JSON master_siswa.mapel_pilihan
-        if (empty($enrolledMapelIds) && !empty($siswa->mapel_pilihan)) {
-            $jsonCodes = is_array($siswa->mapel_pilihan) ? $siswa->mapel_pilihan : json_decode($siswa->mapel_pilihan, true);
-            if (is_array($jsonCodes) && !empty($jsonCodes)) {
-                $enrolledMapelIds = MasterMapel::whereIn('kode', $jsonCodes)->pluck('id_mapel')->toArray();
-            }
-        }
-
         // Ambil jadwal-jadwal ujian aktif
         $jadwals = CbtJadwal::with(['bankSoal.mapel', 'jenis'])
             ->where('status', 1)
@@ -70,31 +47,10 @@ class ExamSessionService
                 continue;
             }
 
-            // 1. Cek apakah kelas siswa diizinkan untuk bank soal ini
+            // Cek apakah kelas siswa diizinkan untuk bank soal ini
             $bankKelas = $bank->kelas_ids;
             if (!empty($bankKelas) && empty(array_intersect($kelasIds, $bankKelas))) {
                 continue;
-            }
-
-            // 2. Cek Kesesuaian Agama (Otomatis tanpa plotting manual)
-            $bankAgama = trim((string) ($bank->soal_agama ?? ''));
-            if (empty($bankAgama) || $bankAgama === '-' || $bankAgama === '0') {
-                $bankAgama = trim((string) ($bank->mapel?->agama ?? ''));
-            }
-            if (!empty($bankAgama) && $bankAgama !== '-' && $bankAgama !== '0') {
-                $siswaAgama = trim((string) ($siswa->agama ?? ''));
-                if (empty($siswaAgama) || strcasecmp($siswaAgama, $bankAgama) !== 0) {
-                    continue; // Lewati: Siswa bukan pemeluk agama ini
-                }
-            }
-
-            // 3. Cek Mata Pelajaran Pilihan (Kurikulum Merdeka Fase F)
-            $isPilihan = (bool) ($bank->mapel?->is_pilihan ?? false);
-            if ($isPilihan) {
-                $mapelId = (int) ($bank->bank_mapel_id ?? $bank->mapel?->id_mapel ?? 0);
-                if (!in_array($mapelId, $enrolledMapelIds, true)) {
-                    continue; // Lewati: Siswa tidak memilih mata pelajaran peminatan ini
-                }
             }
 
             // Ambil status pengerjaan siswa untuk jadwal ini
@@ -140,70 +96,6 @@ class ExamSessionService
     }
 
     /**
-     * Memvalidasi otorisasi siswa untuk mengikuti ujian tertentu:
-     * - Validasi keanggotaan rombel kelas
-     * - Validasi filter mata pelajaran agama siswa
-     * - Validasi mata pelajaran pilihan siswa (Kurikulum Merdeka Fase F)
-     *
-     * @throws AuthorizationException
-     */
-    public function authorizeStudentForExam(int $jadwalId, int $siswaId): void
-    {
-        $siswa = MasterSiswa::with('kelasSiswa')->find($siswaId);
-        if (!$siswa) {
-            throw new AuthorizationException('Data peserta siswa tidak ditemukan.');
-        }
-
-        $jadwal = CbtJadwal::with(['bankSoal.mapel'])->findOrFail($jadwalId);
-        $bank = $jadwal->bankSoal;
-        if (!$bank) {
-            throw new AuthorizationException('Bank soal untuk ujian ini tidak valid atau telah dihapus.');
-        }
-
-        // 1. Cek Alokasi Kelas
-        $kelasIds = $siswa->kelasSiswa->pluck('id_kelas')->toArray();
-        $bankKelas = $bank->kelas_ids;
-        if (!empty($bankKelas) && empty(array_intersect($kelasIds, $bankKelas))) {
-            throw new AuthorizationException('Kelas Anda tidak terdaftar sebagai peserta pada jadwal ujian ini.');
-        }
-
-        // 2. Cek Kesesuaian Agama
-        $bankAgama = trim((string) ($bank->soal_agama ?? ''));
-        if (empty($bankAgama) || $bankAgama === '-' || $bankAgama === '0') {
-            $bankAgama = trim((string) ($bank->mapel?->agama ?? ''));
-        }
-        if (!empty($bankAgama) && $bankAgama !== '-' && $bankAgama !== '0') {
-            $siswaAgama = trim((string) ($siswa->agama ?? ''));
-            if (empty($siswaAgama) || strcasecmp($siswaAgama, $bankAgama) !== 0) {
-                throw new AuthorizationException("Mata pelajaran ujian ini dikhususkan untuk pemeluk agama {$bankAgama}.");
-            }
-        }
-
-        // 3. Cek Mata Pelajaran Pilihan (Kurikulum Merdeka Fase F)
-        $isPilihan = (bool) ($bank->mapel?->is_pilihan ?? false);
-        if ($isPilihan) {
-            $activeTaId = RefTahunAjaran::active()->value('id');
-            $mapelId = (int) ($bank->bank_mapel_id ?? $bank->mapel?->id_mapel ?? 0);
-
-            $enrolled = SiswaMapelPilihan::where('siswa_id', $siswaId)
-                ->when($activeTaId, fn($q) => $q->where('tahun_ajaran_id', $activeTaId))
-                ->where('mapel_id', $mapelId)
-                ->exists();
-
-            if (!$enrolled && !empty($siswa->mapel_pilihan)) {
-                $jsonCodes = is_array($siswa->mapel_pilihan) ? $siswa->mapel_pilihan : json_decode($siswa->mapel_pilihan, true);
-                if (is_array($jsonCodes) && in_array($bank->mapel?->kode, $jsonCodes)) {
-                    $enrolled = true;
-                }
-            }
-
-            if (!$enrolled) {
-                throw new AuthorizationException('Anda tidak terdaftar sebagai peserta pada mata pelajaran pilihan ini.');
-            }
-        }
-    }
-
-    /**
      * Memulai sesi ujian siswa:
      * - Verifikasi token (jika jadwal mewajibkan token).
      * - Inisialisasi durasi siswa di MySQL / Redis.
@@ -212,9 +104,6 @@ class ExamSessionService
      */
     public function startExam(int $jadwalId, int $siswaId, ?string $tokenInput = null): array
     {
-        // 0. Otorisasi Peserta (Kelas, Agama, Mapel Pilihan)
-        $this->authorizeStudentForExam($jadwalId, $siswaId);
-
         $jadwal = CbtJadwal::with('bankSoal')->findOrFail($jadwalId);
         $bank = $jadwal->bankSoal;
 
@@ -261,11 +150,11 @@ class ExamSessionService
             throw new \RuntimeException('Waktu ujian telah habis.');
         }
 
-        // 4. Siapkan Paket Soal dengan Deterministic Seeded Shuffle (Zero MySQL Random Table)
-        $paketSoal = $this->shuffleService->buildStudentExamPackage($jadwal, $bank, $siswaId);
+        // 4. Siapkan Paket Soal dengan Deterministic Seeded Shuffle
+        $paketSoal = $this->getSeededExamQuestions($jadwal, $bank, $siswaId);
 
-        // 5. Muat jawaban sementara dari Buffer Service (Redis / Fallback DB)
-        $savedAnswers = $this->bufferService->getAllAnswers($jadwalId, $siswaId);
+        // 5. Muat jawaban sementara dari Redis (jika siswa sempat reload/refresh)
+        $savedAnswers = $this->getStudentAnswersFromRedis($jadwalId, $siswaId);
 
         // 6. Muat jumlah pelanggaran anti-cheat
         $violations = $this->getViolationCount($jadwalId, $siswaId);
@@ -288,11 +177,24 @@ class ExamSessionService
     }
 
     /**
-     * Autosave jawaban siswa langsung ke Redis Hash (< 2ms) dengan graceful database fallback.
+     * Autosave jawaban siswa langsung ke Redis Hash (< 2ms) tanpa menyentuh disk MySQL.
      */
     public function autoSaveAnswer(int $jadwalId, int $siswaId, int $soalId, mixed $jawaban, bool $ragu = false): bool
     {
-        return $this->bufferService->saveAnswer($jadwalId, $siswaId, $soalId, $jawaban, $ragu);
+        $redisKey = "cbt_jawaban:{$jadwalId}:{$siswaId}";
+        $data = json_encode([
+            'jawaban'   => $jawaban,
+            'ragu'      => $ragu,
+            'timestamp' => time(),
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        try {
+            Redis::hset($redisKey, (string) $soalId, $data);
+            Redis::expire($redisKey, 86400); // 24 jam TTL
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     /**
@@ -352,10 +254,10 @@ class ExamSessionService
 
     /**
      * Selesai Ujian:
-     * 1. Ambil semua data jawaban dari Redis via HGETALL.
-     * 2. DB::transaction() untuk batch insert/upsert seluruh jawaban ke cbt_jawaban_siswa.
-     * 3. Hitung nilai otomatis untuk soal objektif, simpan status selesai di cbt_ujian_siswa.
-     * 4. Bersihkan key buffer Redis terkait setelah commit berhasil.
+     * 1. Ambil semua jawaban dari Redis buffer.
+     * 2. Hitung nilai otomatis via ExamGradingService.
+     * 3. Batch sinkronisasi / upsert ke `cbt_soal_siswa` dan `cbt_nilai`.
+     * 4. Update status `cbt_durasi_siswa` menjadi 2 (selesai).
      */
     public function finishExam(int $jadwalId, int $siswaId): array
     {
@@ -363,103 +265,76 @@ class ExamSessionService
         $bank = $jadwal->bankSoal;
         $soals = $bank->soals;
 
-        // Ambil seluruh jawaban siswa dari buffer (Redis / Fallback DB)
-        $savedAnswers = $this->bufferService->getAllAnswers($jadwalId, $siswaId);
+        // Ambil seluruh jawaban siswa dari Redis
+        $savedAnswers = $this->getStudentAnswersFromRedis($jadwalId, $siswaId);
 
-        // Evaluasi skor otomatis
+        // Hitung nilai otomatis
         $gradingResult = $this->gradingService->evaluateExam($bank, $soals, $savedAnswers);
 
-        DB::transaction(function () use ($jadwal, $bank, $siswaId, $soals, $savedAnswers, $gradingResult) {
+        DB::transaction(function () use ($jadwalId, $bank, $siswaId, $soals, $savedAnswers, $gradingResult) {
             $now = date('Y-m-d H:i:s');
-            $jadwalId = (int)$jadwal->id_jadwal;
 
-            // Dapatkan peta urutan soal deterministik
-            $orderMap = $this->shuffleService->getQuestionOrderMap($jadwal, $bank, $siswaId);
+            // 1. Batch Upsert ke `cbt_soal_siswa`
+            $soalOrderKey = "cbt_soal_order:{$jadwalId}:{$siswaId}";
+            $orderedIds = [];
+            try {
+                $orderedRaw = Redis::get($soalOrderKey);
+                if ($orderedRaw) {
+                    $orderedIds = json_decode($orderedRaw, true) ?? [];
+                }
+            } catch (\Throwable $e) {
+            }
+
+            $orderLookup = array_flip($orderedIds);
 
             foreach ($soals as $soal) {
-                $soalId = (int)$soal->id_soal;
-                $ansData = $savedAnswers[$soalId] ?? null;
-                $userAns = is_array($ansData) && array_key_exists('jawaban', $ansData) ? $ansData['jawaban'] : $ansData;
-                $isRagu = is_array($ansData) && !empty($ansData['ragu']);
+                $soalId = $soal->id_soal;
+                $soalSiswaId = CbtSoalSiswa::generateId($jadwalId, $bank->id_bank, $siswaId, $soalId);
                 $eval = $gradingResult['detail_soals'][$soalId] ?? null;
-                $skorButir = (float)($eval['point_soal'] ?? 0);
 
-                // 1. Batch Upsert ke tabel `cbt_jawaban_siswa`
-                DB::table('cbt_jawaban_siswa')->updateOrInsert(
-                    [
-                        'jadwal_id' => $jadwalId,
-                        'siswa_id'  => $siswaId,
-                        'soal_id'   => $soalId,
-                    ],
-                    [
-                        'jawaban'    => json_encode($userAns, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-                        'ragu'       => $isRagu ? 1 : 0,
-                        'skor_butir' => $skorButir,
-                        'updated_at' => $now,
-                    ]
-                );
+                $aliasNumber = isset($orderLookup[$soalId]) ? ($orderLookup[$soalId] + 1) : $soal->nomor_soal;
+                $userAnsRaw = $savedAnswers[$soalId] ?? null;
+                $userAnsVal = is_array($userAnsRaw) && array_key_exists('jawaban', $userAnsRaw)
+                    ? $userAnsRaw['jawaban']
+                    : $userAnsRaw;
 
-                // Sinkronisasi legacy `cbt_soal_siswa` jika tabel ada
-                if (\Illuminate\Support\Facades\Schema::hasTable('cbt_soal_siswa')) {
-                    $soalSiswaId = CbtSoalSiswa::generateId($jadwalId, $bank->id_bank, $siswaId, $soalId);
-                    $aliasNumber = $orderMap[$soalId] ?? $soal->nomor_soal;
-
-                    CbtSoalSiswa::query()->updateOrCreate(
-                        ['id_soal_siswa' => $soalSiswaId],
-                        [
-                            'id_bank'        => $bank->id_bank,
-                            'id_jadwal'      => $jadwalId,
-                            'id_soal'        => $soalId,
-                            'id_siswa'       => $siswaId,
-                            'jenis_soal'     => (int) $soal->jenis,
-                            'no_soal_alias'  => $aliasNumber,
-                            'jawaban_alias'  => is_array($userAns) ? json_encode($userAns) : $userAns,
-                            'jawaban_siswa'  => is_array($userAns) ? json_encode($userAns) : $userAns,
-                            'jawaban_benar'  => is_array($soal->jawaban) ? json_encode($soal->jawaban) : $soal->jawaban,
-                            'point_soal'     => (string) $skorButir,
-                            'nilai_otomatis' => (int) ($eval['nilai_otomatis'] ?? 0),
-                            'nilai_koreksi'  => (string) ($eval['nilai_koreksi'] ?? 0),
-                            'soal_end'       => 1,
-                        ]
-                    );
-                }
-            }
-
-            // 2. Simpan Rekap Nilai Akhir & Status Pengerjaan ke `cbt_ujian_siswa`
-            if (\Illuminate\Support\Facades\Schema::hasTable('cbt_ujian_siswa')) {
-                DB::table('cbt_ujian_siswa')->updateOrInsert(
+                CbtSoalSiswa::query()->updateOrCreate(
+                    ['id_soal_siswa' => $soalSiswaId],
                     [
-                        'jadwal_id' => $jadwalId,
-                        'siswa_id'  => $siswaId,
-                    ],
-                    [
-                        'status'        => 2, // 2 = Selesai
-                        'waktu_selesai' => $now,
-                        'nilai_akhir'   => $gradingResult['total_nilai'],
-                        'updated_at'    => $now,
+                        'id_bank'        => $bank->id_bank,
+                        'id_jadwal'      => $jadwalId,
+                        'id_soal'        => $soalId,
+                        'id_siswa'       => $siswaId,
+                        'jenis_soal'     => (int) $soal->jenis,
+                        'no_soal_alias'  => $aliasNumber,
+                        'jawaban_alias'  => is_array($userAnsVal) ? json_encode($userAnsVal) : $userAnsVal,
+                        'jawaban_siswa'  => is_array($userAnsVal) ? json_encode($userAnsVal) : $userAnsVal,
+                        'jawaban_benar'  => is_array($soal->jawaban) ? json_encode($soal->jawaban) : $soal->jawaban,
+                        'point_soal'     => (string) ($eval['point_soal'] ?? 0),
+                        'nilai_otomatis' => (int) ($eval['nilai_otomatis'] ?? 0),
+                        'nilai_koreksi'  => (string) ($eval['nilai_koreksi'] ?? 0),
+                        'soal_end'       => 1,
                     ]
                 );
             }
 
-            // 3. Simpan Rekap ke legacy `cbt_nilai`
-            if (\Illuminate\Support\Facades\Schema::hasTable('cbt_nilai')) {
-                $nilaiId = CbtNilai::generateId($siswaId, $jadwalId);
-                CbtNilai::query()->updateOrCreate(
-                    ['id_nilai' => $nilaiId],
-                    [
-                        'id_siswa'        => (string) $siswaId,
-                        'id_jadwal'       => (string) $jadwalId,
-                        'pg_benar'        => $gradingResult['pg_benar'],
-                        'pg_nilai'        => $gradingResult['pg_nilai'],
-                        'kompleks_nilai'  => $gradingResult['kompleks_nilai'],
-                        'jodohkan_nilai'  => $gradingResult['jodohkan_nilai'],
-                        'isian_nilai'     => $gradingResult['isian_nilai'],
-                        'essai_nilai'     => $gradingResult['essai_nilai'],
-                    ]
-                );
-            }
+            // 2. Simpan Rekap Nilai Akhir ke `cbt_nilai`
+            $nilaiId = CbtNilai::generateId($siswaId, $jadwalId);
+            CbtNilai::query()->updateOrCreate(
+                ['id_nilai' => $nilaiId],
+                [
+                    'id_siswa'        => (string) $siswaId,
+                    'id_jadwal'       => (string) $jadwalId,
+                    'pg_benar'        => $gradingResult['pg_benar'],
+                    'pg_nilai'        => $gradingResult['pg_nilai'],
+                    'kompleks_nilai'  => $gradingResult['kompleks_nilai'],
+                    'jodohkan_nilai'  => $gradingResult['jodohkan_nilai'],
+                    'isian_nilai'     => $gradingResult['isian_nilai'],
+                    'essai_nilai'     => $gradingResult['essai_nilai'],
+                ]
+            );
 
-            // 4. Update status sesi durasi menjadi Selesai
+            // 3. Update status sesi durasi menjadi Selesai
             $durasiId = CbtDurasiSiswa::generateId($siswaId, $jadwalId);
             $durasi = CbtDurasiSiswa::find($durasiId);
             if ($durasi) {
@@ -469,10 +344,9 @@ class ExamSessionService
             }
         });
 
-        // 5. Bersihkan buffer Redis pengerjaan siswa setelah commit berhasil
-        $this->bufferService->clearBuffer($jadwalId, $siswaId);
-
+        // 4. Bersihkan buffer Redis pengerjaan siswa dan lepaskan device lock
         try {
+            Redis::del("cbt_jawaban:{$jadwalId}:{$siswaId}");
             Redis::del("cbt_violation:{$jadwalId}:{$siswaId}");
             Redis::del("cbt_device_lock:{$siswaId}");
         } catch (\Throwable $e) {

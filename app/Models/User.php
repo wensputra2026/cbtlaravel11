@@ -88,14 +88,6 @@ class User extends Authenticatable
     }
 
     /**
-     * Relasi ke profil data guru jika pengguna adalah guru (dihubungkan via id_user).
-     */
-    public function guru(): HasOne
-    {
-        return $this->hasOne(MasterGuru::class, 'id_user', 'id');
-    }
-
-    /**
      * Relasi ke profil siswa skema bersih (dihubungkan via user_id).
      */
     public function profileSiswa(): HasOne

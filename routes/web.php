@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\CbtAlokasiController;
-use App\Http\Controllers\Admin\CbtAlokasiPilihanController;
 use App\Http\Controllers\Admin\CbtAnalisisController;
 use App\Http\Controllers\Admin\CbtBankSoalController;
 use App\Http\Controllers\Admin\CbtJadwalController;
@@ -27,7 +26,6 @@ use App\Http\Controllers\Guru\GuruKoreksiController;
 use App\Http\Controllers\Guru\GuruPengawasanController;
 use App\Http\Controllers\Guru\GuruProfilController;
 use App\Http\Controllers\Guru\GuruTokenController;
-use App\Http\Controllers\Guru\GuruWaliKelasController;
 use App\Http\Controllers\ProctorController;
 use Illuminate\Support\Facades\Route;
 
@@ -37,14 +35,22 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-// Autentikasi Publik
+// Autentikasi Publik & Kompatibilitas Garuda CBT (/auth & /login)
 Route::get('/', function () {
     return redirect()->route('login');
 });
 
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
-Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout');
+
+// Rute Kompatibel Penuh Garuda CBT (/auth, /auth/login, /auth/logout)
+Route::prefix('auth')->name('auth.')->group(function () {
+    Route::get('/', [AuthController::class, 'showLoginForm'])->name('index');
+    Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+    Route::match(['get', 'post'], '/logout', [AuthController::class, 'logout'])->name('logout');
+});
 
 // =============================================================================
 // RUTE TERAUTENTIKASI
@@ -69,54 +75,20 @@ Route::middleware(['auth'])->group(function () {
 
             Route::get('/jurusan', [MasterDataController::class, 'indexJurusan'])->name('jurusan');
             Route::post('/jurusan', [MasterDataController::class, 'storeJurusan'])->name('jurusan.store');
-            Route::put('/jurusan/{id}', [MasterDataController::class, 'updateJurusan'])->name('jurusan.update');
-            Route::delete('/jurusan/{id}', [MasterDataController::class, 'destroyJurusan'])->name('jurusan.destroy');
 
             Route::get('/kelas', [MasterDataController::class, 'indexKelas'])->name('kelas');
             Route::post('/kelas', [MasterDataController::class, 'storeKelas'])->name('kelas.store');
-            Route::post('/kelas/bulk', [MasterDataController::class, 'bulkStoreKelas'])->name('kelas.bulk');
-            Route::get('/kelas/{id}/detail', [MasterDataController::class, 'detailKelas'])->name('kelas.detail');
-            Route::post('/kelas/sync-semester', [MasterDataController::class, 'syncSemesterKelas'])->name('kelas.sync_semester');
-            Route::put('/kelas/{id}', [MasterDataController::class, 'updateKelas'])->name('kelas.update');
-            Route::delete('/kelas/{id}', [MasterDataController::class, 'destroyKelas'])->name('kelas.destroy');
 
             Route::get('/mapel', [MasterDataController::class, 'indexMapel'])->name('mapel');
             Route::post('/mapel', [MasterDataController::class, 'storeMapel'])->name('mapel.store');
-            Route::put('/mapel/{id}', [MasterDataController::class, 'updateMapel'])->name('mapel.update');
-            Route::delete('/mapel/{id}', [MasterDataController::class, 'destroyMapel'])->name('mapel.destroy');
-            Route::post('/mapel/bulk-delete', [MasterDataController::class, 'bulkDestroyMapel'])->name('mapel.bulk_destroy');
-            Route::post('/mapel/{id}/toggle-status', [MasterDataController::class, 'toggleStatusMapel'])->name('mapel.toggle_status');
-            Route::get('/mapel/template', [MasterDataController::class, 'downloadTemplateMapel'])->name('mapel.template');
             Route::post('/mapel/import', [MasterDataController::class, 'importMapel'])->name('mapel.import');
-
-            // Kelompok & Sub Kelompok Mapel
-            Route::post('/mapel/kelompok', [MasterDataController::class, 'storeKelompokMapel'])->name('mapel.kelompok.store');
-            Route::put('/mapel/kelompok/{id}', [MasterDataController::class, 'updateKelompokMapel'])->name('mapel.kelompok.update');
-            Route::delete('/mapel/kelompok/{id}', [MasterDataController::class, 'destroyKelompokMapel'])->name('mapel.kelompok.destroy');
 
             Route::get('/guru', [MasterDataController::class, 'indexGuru'])->name('guru');
             Route::post('/guru', [MasterDataController::class, 'storeGuru'])->name('guru.store');
-            Route::put('/guru/{id}', [MasterDataController::class, 'updateGuru'])->name('guru.update');
-            Route::delete('/guru/{id}', [MasterDataController::class, 'destroyGuru'])->name('guru.destroy');
-            Route::post('/guru/bulk-delete', [MasterDataController::class, 'bulkDestroyGuru'])->name('guru.bulk_destroy');
-            Route::post('/guru/{id}/toggle-status', [MasterDataController::class, 'toggleStatusGuru'])->name('guru.toggle_status');
-            Route::get('/guru/{id}/edit-jabatan', [MasterDataController::class, 'editJabatanGuru'])->name('guru.edit_jabatan');
-            Route::post('/guru/{id}/jabatan', [MasterDataController::class, 'updateJabatanGuru'])->name('guru.jabatan.update');
-            Route::post('/guru/{id}/jabatan/copy', [MasterDataController::class, 'copyJabatanGuru'])->name('guru.jabatan.copy');
-            Route::post('/guru/jabatan/level', [MasterDataController::class, 'storeLevelGuru'])->name('guru.jabatan.level.store');
-            Route::get('/guru/template', [MasterDataController::class, 'downloadTemplateGuru'])->name('guru.template');
-            Route::post('/guru/import', [MasterDataController::class, 'importGuru'])->name('guru.import');
 
             Route::get('/siswa', [MasterDataController::class, 'indexSiswa'])->name('siswa');
             Route::post('/siswa', [MasterDataController::class, 'storeSiswa'])->name('siswa.store');
-            Route::put('/siswa/{id}', [MasterDataController::class, 'updateSiswa'])->name('siswa.update');
-            Route::delete('/siswa/{id}', [MasterDataController::class, 'destroySiswa'])->name('siswa.destroy');
-            Route::post('/siswa/bulk-action', [MasterDataController::class, 'bulkActionSiswa'])->name('siswa.bulk_action');
-            Route::post('/siswa/{id}/reset-password', [MasterDataController::class, 'resetPasswordSiswa'])->name('siswa.reset_password');
-            Route::get('/siswa/template', [MasterDataController::class, 'downloadTemplateSiswa'])->name('siswa.template');
-            Route::get('/siswa/export', [MasterDataController::class, 'exportSiswa'])->name('siswa.export');
             Route::post('/siswa/import', [MasterDataController::class, 'importSiswa'])->name('siswa.import');
-            Route::post('/siswa/list', [MasterDataController::class, 'ajaxListSiswa'])->name('siswa.list');
 
             Route::get('/alumni', [MasterDataController::class, 'indexAlumni'])->name('alumni');
 
@@ -134,31 +106,46 @@ Route::middleware(['auth'])->group(function () {
         Route::prefix('cbt')->name('cbt.')->group(function () {
             // Bank Soal
             Route::get('/bank-soal', [CbtBankSoalController::class, 'index'])->name('bank_soal.index');
+            Route::get('/bank-soal/create', [CbtBankSoalController::class, 'addBank'])->name('bank_soal.create');
+            Route::get('/bank-soal/{id}/edit', [CbtBankSoalController::class, 'editBank'])->name('bank_soal.edit');
             Route::post('/bank-soal', [CbtBankSoalController::class, 'store'])->name('bank_soal.store');
+            Route::post('/bank-soal/save-bank', [CbtBankSoalController::class, 'saveBank'])->name('bank_soal.save_bank');
+            Route::get('/bank-soal/get-kelas-level', [CbtBankSoalController::class, 'getKelasLevel'])->name('bank_soal.get_kelas_level');
+            Route::get('/bank-soal/get-guru-mapel', [CbtBankSoalController::class, 'getGuruMapel'])->name('bank_soal.get_guru_mapel');
+            Route::post('/bank-soal/update/{id}', [CbtBankSoalController::class, 'update'])->name('bank_soal.update');
+            Route::get('/bank-soal/data/{id}', [CbtBankSoalController::class, 'getBankJson'])->name('bank_soal.json');
+            Route::match(['get', 'post'], '/bank-soal/duplicate/{id}', [CbtBankSoalController::class, 'duplicate'])->name('bank_soal.duplicate');
+            Route::delete('/bank-soal/{id}', [CbtBankSoalController::class, 'destroy'])->name('bank_soal.destroy');
+            Route::post('/bank-soal/bulk-delete', [CbtBankSoalController::class, 'bulkDelete'])->name('bank_soal.bulk_delete');
+            Route::get('/bank-soal/soal-siswa/{id}', [CbtBankSoalController::class, 'getSoalSiswa'])->name('bank_soal.soal_siswa');
+            Route::get('/bank-soal/download-word/{id}', [CbtBankSoalController::class, 'downloadDocx'])->name('bank_soal.download_word');
+            Route::get('/bank-soal/template/{format?}', [CbtBankSoalController::class, 'downloadTemplate'])->name('bank_soal.template');
+            Route::get('/bank-soal/{id}/import', [CbtBankSoalController::class, 'importView'])->name('bank_soal.import');
+            Route::post('/bank-soal/{id}/import', [CbtBankSoalController::class, 'importSoal'])->name('bank_soal.import_process');
             Route::get('/bank-soal/{id}', [CbtBankSoalController::class, 'show'])->name('bank_soal.show');
-            Route::get('/bank-soal/{id}/buat-soal', [CbtBankSoalController::class, 'buatSoal'])->name('bank_soal.buat_soal');
-            Route::get('/bank-soal/{id}/soal/{soalId}/edit', [CbtBankSoalController::class, 'editSoal'])->name('bank_soal.edit_soal');
-            Route::put('/bank-soal/soal/{soalId}', [CbtBankSoalController::class, 'updateSoal'])->name('bank_soal.update_soal');
-            Route::post('/bank-soal/soal/{soalId}', [CbtBankSoalController::class, 'updateSoal'])->name('bank_soal.update_soal_post');
+            Route::post('/bank-soal/save-selected', [CbtBankSoalController::class, 'saveSelected'])->name('bank_soal.save_selected');
+            Route::post('/bank-soal/hapus-soal', [CbtBankSoalController::class, 'hapusSoalAjax'])->name('bank_soal.hapus_soal_ajax');
+            Route::post('/bank-soal/reset-number', [CbtBankSoalController::class, 'resetNumber'])->name('bank_soal.reset_number');
+            Route::post('/bank-soal/get-detail', [CbtBankSoalController::class, 'getDetailAjax'])->name('bank_soal.get_detail');
             Route::post('/bank-soal/{id}/soal', [CbtBankSoalController::class, 'storeSoal'])->name('bank_soal.store_soal');
-            Route::post('/bank-soal/{id}/soal/store', [CbtBankSoalController::class, 'storeSoal'])->name('bank_soal.soal.store');
+            Route::post('/bank-soal/{id}/soal/create', [CbtBankSoalController::class, 'storeSoal'])->name('bank_soal.soal.store');
             Route::delete('/bank-soal/soal/{id}', [CbtBankSoalController::class, 'deleteSoal'])->name('bank_soal.delete_soal');
             Route::delete('/bank-soal/soal/{id}/destroy', [CbtBankSoalController::class, 'deleteSoal'])->name('bank_soal.soal.destroy');
-            Route::post('/bank-soal/{id}/duplicate', [CbtBankSoalController::class, 'duplicate'])->name('bank_soal.duplicate');
-            Route::delete('/bank-soal/{id}', [CbtBankSoalController::class, 'destroy'])->name('bank_soal.destroy');
+
+            // Legacy Garuda CBT AJAX endpoint compatibility
+            Route::post('/cbtbanksoal/saveSelected', [CbtBankSoalController::class, 'saveSelected']);
+            Route::post('/cbtbanksoal/hapussoal', [CbtBankSoalController::class, 'hapusSoalAjax']);
+            Route::post('/cbtbanksoal/resetNumber', [CbtBankSoalController::class, 'resetNumber']);
+            Route::post('/cbtbanksoal/get_detail', [CbtBankSoalController::class, 'getDetailAjax']);
 
             // Jadwal & Jenis Ujian
             Route::get('/jadwal', [CbtJadwalController::class, 'index'])->name('jadwal.index');
             Route::post('/jadwal', [CbtJadwalController::class, 'store'])->name('jadwal.store');
-            Route::put('/jadwal/{id}', [CbtJadwalController::class, 'update'])->name('jadwal.update');
-            Route::post('/jadwal/{id}', [CbtJadwalController::class, 'update'])->name('jadwal.update_post');
             Route::post('/jadwal/toggle/{id}', [CbtJadwalController::class, 'toggleStatus'])->name('jadwal.toggle');
             Route::delete('/jadwal/{id}', [CbtJadwalController::class, 'destroy'])->name('jadwal.destroy');
 
             Route::get('/jenis', [CbtJadwalController::class, 'indexJenis'])->name('jenis.index');
             Route::post('/jenis', [CbtJadwalController::class, 'storeJenis'])->name('jenis.store');
-            Route::put('/jenis/{id}', [CbtJadwalController::class, 'updateJenis'])->name('jenis.update');
-            Route::post('/jenis/{id}', [CbtJadwalController::class, 'updateJenis'])->name('jenis.update_post');
             Route::delete('/jenis/{id}', [CbtJadwalController::class, 'destroyJenis'])->name('jenis.destroy');
 
             // Sesi & Ruang
@@ -186,13 +173,6 @@ Route::middleware(['auth'])->group(function () {
             // Nomor Peserta
             Route::get('/nomor-peserta', [CbtAlokasiController::class, 'indexNomorPeserta'])->name('alokasi.nomor');
             Route::post('/nomor-peserta/generate', [CbtAlokasiController::class, 'generateNomorPeserta'])->name('alokasi.nomor.generate');
-
-            // Alokasi Mapel Pilihan Siswa (Kurikulum Merdeka Fase F)
-            Route::get('/alokasi-pilihan', [CbtAlokasiPilihanController::class, 'index'])->name('alokasi.pilihan');
-            Route::post('/alokasi-pilihan/save', [CbtAlokasiPilihanController::class, 'saveMatrix'])->name('alokasi.pilihan.save');
-            Route::post('/alokasi-pilihan/matrix', [CbtAlokasiPilihanController::class, 'saveMatrix'])->name('alokasi.pilihan.matrix');
-            Route::get('/alokasi-pilihan/template', [CbtAlokasiPilihanController::class, 'downloadTemplate'])->name('alokasi.pilihan.template');
-            Route::post('/alokasi-pilihan/import', [CbtAlokasiPilihanController::class, 'import'])->name('alokasi.pilihan.import');
 
             // Analisis Butir Soal & Rekap Nilai
             Route::get('/analisis', [CbtAnalisisController::class, 'index'])->name('analisis');
@@ -238,13 +218,21 @@ Route::middleware(['auth'])->group(function () {
 
         // Bank Soal
         Route::get('/bank-soal', [GuruBankSoalController::class, 'index'])->name('bank_soal.index');
+        Route::get('/bank-soal/create', [GuruBankSoalController::class, 'addBank'])->name('bank_soal.create');
+        Route::get('/bank-soal/{id}/edit', [GuruBankSoalController::class, 'editBank'])->name('bank_soal.edit');
         Route::post('/bank-soal', [GuruBankSoalController::class, 'store'])->name('bank_soal.store');
+        Route::post('/bank-soal/save-bank', [GuruBankSoalController::class, 'saveBank'])->name('bank_soal.save_bank');
+        Route::get('/bank-soal/get-kelas-level', [GuruBankSoalController::class, 'getKelasLevel'])->name('bank_soal.get_kelas_level');
+        Route::get('/bank-soal/get-guru-mapel', [GuruBankSoalController::class, 'getGuruMapel'])->name('bank_soal.get_guru_mapel');
+        Route::post('/bank-soal/update/{id}', [GuruBankSoalController::class, 'update'])->name('bank_soal.update');
+        Route::get('/bank-soal/data/{id}', [GuruBankSoalController::class, 'getBankJson'])->name('bank_soal.json');
+        Route::match(['get', 'post'], '/bank-soal/duplicate/{id}', [GuruBankSoalController::class, 'duplicate'])->name('bank_soal.duplicate');
+        Route::delete('/bank-soal/{id}', [GuruBankSoalController::class, 'destroy'])->name('bank_soal.destroy');
+        Route::post('/bank-soal/bulk-delete', [GuruBankSoalController::class, 'bulkDelete'])->name('bank_soal.bulk_delete');
+        Route::get('/bank-soal/soal-siswa/{id}', [GuruBankSoalController::class, 'getSoalSiswa'])->name('bank_soal.soal_siswa');
+        Route::get('/bank-soal/download-word/{id}', [GuruBankSoalController::class, 'downloadDocx'])->name('bank_soal.download_word');
         Route::get('/bank-soal/template/{format?}', [GuruBankSoalController::class, 'downloadTemplate'])->name('bank_soal.template');
         Route::get('/bank-soal/{id}', [GuruBankSoalController::class, 'show'])->name('bank_soal.show');
-        Route::get('/bank-soal/{id}/buat-soal', [GuruBankSoalController::class, 'buatSoal'])->name('bank_soal.buat_soal');
-        Route::get('/bank-soal/{id}/soal/{soalId}/edit', [GuruBankSoalController::class, 'editSoal'])->name('bank_soal.edit_soal');
-        Route::put('/bank-soal/soal/{soalId}', [GuruBankSoalController::class, 'updateSoal'])->name('bank_soal.update_soal');
-        Route::post('/bank-soal/soal/{soalId}', [GuruBankSoalController::class, 'updateSoal'])->name('bank_soal.update_soal_post');
         Route::post('/bank-soal/{id}/soal', [GuruBankSoalController::class, 'storeSoal'])->name('bank_soal.store_soal');
         Route::post('/bank-soal/{id}/store-soal', [GuruBankSoalController::class, 'storeSoal'])->name('bank_soal.soal.store');
         Route::delete('/bank-soal/soal/{id}', [GuruBankSoalController::class, 'deleteSoal'])->name('bank_soal.delete_soal');
@@ -266,19 +254,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/koreksi/peserta/{jadwalId}', [GuruKoreksiController::class, 'showPeserta'])->name('koreksi.peserta');
         Route::get('/koreksi/form/{cbtSiswaId}', [GuruKoreksiController::class, 'showFormKoreksi'])->name('koreksi.form');
         Route::post('/koreksi/form/{cbtSiswaId}', [GuruKoreksiController::class, 'storeKoreksi'])->name('koreksi.store');
+        Route::post('/koreksi/tandai/{cbtSiswaId}', [GuruKoreksiController::class, 'tandaiDikoreksi'])->name('koreksi.tandai');
 
         // Profil Guru
         Route::get('/profil', [GuruProfilController::class, 'index'])->name('profil');
         Route::post('/profil/password', [GuruProfilController::class, 'updatePassword'])->name('profil.password');
-
-        // Wali Kelas (Khusus Guru yang ditugaskan sebagai Wali Kelas)
-        Route::prefix('wali')->name('wali.')->group(function () {
-            Route::get('/siswa', [GuruWaliKelasController::class, 'indexSiswa'])->name('siswa');
-            Route::get('/struktur', [GuruWaliKelasController::class, 'indexStruktur'])->name('struktur');
-            Route::post('/struktur', [GuruWaliKelasController::class, 'saveStruktur'])->name('struktur.save');
-            Route::get('/catatan', [GuruWaliKelasController::class, 'indexCatatan'])->name('catatan');
-            Route::post('/catatan', [GuruWaliKelasController::class, 'storeCatatan'])->name('catatan.store');
-        });
     });
 
     // =========================================================================
@@ -296,15 +276,10 @@ Route::middleware(['auth'])->group(function () {
         // High-Concurrency API Endpoints
         Route::post('/api/start/{jadwalId}', [ExamSessionController::class, 'apiStartExam'])->name('api.start');
         Route::post('/api/autosave', [ExamSessionController::class, 'apiAutoSave'])->name('api.autosave');
-        Route::post('/api/autosave/{jadwalId}', [ExamSessionController::class, 'apiAutoSave'])->name('api.autosave_param');
         Route::post('/api/violation', [ExamSessionController::class, 'apiRecordViolation'])->name('api.violation');
         Route::get('/api/sync-timer/{jadwalId}', [ExamSessionController::class, 'apiSyncTimer'])->name('api.sync_timer');
         Route::post('/api/finish/{jadwalId}', [ExamSessionController::class, 'apiFinishExam'])->name('api.finish');
     });
-
-    // Alias High-Performance CBT Endpoint: /api/cbt/...
-    Route::post('/api/cbt/autosave/{jadwalId}', [ExamSessionController::class, 'apiAutoSave'])->name('cbt.api.autosave');
-    Route::post('/api/cbt/finish/{jadwalId}', [ExamSessionController::class, 'apiFinishExam'])->name('cbt.api.finish');
 
     // =========================================================================
     // 4. MODUL PROKTOR & LIVE MONITORING (PENGAWAS RUANG UJIAN)
@@ -341,42 +316,24 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/kartu-login', [DocumentPrintController::class, 'kartuLogin'])->name('kartu_login');
     });
 
+    // Compatibility for GarudaCBT Koreksi URL: /cbtnilai/koreksi?id_siswa=X&id_jadwal=Y
+    Route::get('/cbtnilai/koreksi', [GuruKoreksiController::class, 'legacyKoreksiRedirect']);
+
+    // Compatibility for GarudaCBT Bank Soal URLs: /cbtbanksoal?type=0&mode=1
+    Route::get('/cbtbanksoal', [GuruBankSoalController::class, 'index'])->name('cbtbanksoal.legacy');
+    Route::match(['get', 'post'], '/cbtbanksoal/addBank', [GuruBankSoalController::class, 'addBank']);
+    Route::match(['get', 'post'], '/cbtbanksoal/editBank', [GuruBankSoalController::class, 'editBank']);
+    Route::post('/cbtbanksoal/saveBank', [GuruBankSoalController::class, 'saveBank']);
+    Route::get('/cbtbanksoal/getkelaslevel', [GuruBankSoalController::class, 'getKelasLevel']);
+    Route::get('/cbtbanksoal/getgurumapel', [GuruBankSoalController::class, 'getGuruMapel']);
+    Route::match(['get', 'post'], '/cbtbanksoal/copybanksoal/{id}', [GuruBankSoalController::class, 'duplicate']);
+    Route::match(['get', 'post'], '/cbtbanksoal/copyBankSoal/{id}', [GuruBankSoalController::class, 'duplicate']);
+    Route::match(['get', 'post'], '/cbtbanksoal/deleteBank', [GuruBankSoalController::class, 'destroyLegacy']);
+    Route::match(['get', 'post'], '/cbtbanksoal/deleteallbank', [GuruBankSoalController::class, 'bulkDelete']);
+    Route::match(['get', 'post'], '/cbtbanksoal/deleteAllBank', [GuruBankSoalController::class, 'bulkDelete']);
+    Route::get('/cbtbanksoal/getsoalsiswa/{id}', [GuruBankSoalController::class, 'getSoalSiswa']);
+    Route::get('/cbtbanksoal/importsoal/{id}', [GuruBankSoalController::class, 'importView']);
+    Route::get('/cbtbanksoal/detail/{id}', [GuruBankSoalController::class, 'show']);
+
 });
-
-// Legacy CodeIgniter route compatibility aliases (support http://localhost/us1/dataguru/editJabatan/1)
-Route::middleware(['web', 'auth'])->group(function () {
-    Route::get('/dataguru', fn() => redirect()->route('admin.master.guru'));
-    Route::get('/us1/dataguru', fn() => redirect()->route('admin.master.guru'));
-    Route::get('/dataguru/editJabatan/{id}', fn($id) => redirect()->route('admin.master.guru.edit_jabatan', $id));
-    Route::get('/dataguru/editjabatan/{id}', fn($id) => redirect()->route('admin.master.guru.edit_jabatan', $id));
-    Route::get('/us1/dataguru/editJabatan/{id}', fn($id) => redirect()->route('admin.master.guru.edit_jabatan', $id));
-    Route::get('/us1/dataguru/editjabatan/{id}', fn($id) => redirect()->route('admin.master.guru.edit_jabatan', $id));
-    Route::post('/dataguru/saveJabatan', function (\Illuminate\Http\Request $request) {
-        $guruId = $request->input('id_guru');
-        if ($request->filled('copy')) {
-            return app(\App\Http\Controllers\Admin\MasterDataController::class)->copyJabatanGuru($request, (int)$guruId);
-        }
-        return app(\App\Http\Controllers\Admin\MasterDataController::class)->updateJabatanGuru($request, (int)$guruId);
-    });
-    Route::post('/us1/dataguru/saveJabatan', function (\Illuminate\Http\Request $request) {
-        $guruId = $request->input('id_guru');
-        if ($request->filled('copy')) {
-            return app(\App\Http\Controllers\Admin\MasterDataController::class)->copyJabatanGuru($request, (int)$guruId);
-        }
-        return app(\App\Http\Controllers\Admin\MasterDataController::class)->updateJabatanGuru($request, (int)$guruId);
-    });
-
-    // Datasiswa legacy routes
-    Route::get('/datasiswa', fn() => redirect()->route('admin.master.siswa'));
-    Route::get('/us1/datasiswa', fn() => redirect()->route('admin.master.siswa'));
-    Route::post('/datasiswa/list', [MasterDataController::class, 'ajaxListSiswa']);
-    Route::post('/us1/datasiswa/list', [MasterDataController::class, 'ajaxListSiswa']);
-    Route::post('/datasiswa/create', [MasterDataController::class, 'storeSiswa']);
-    Route::post('/us1/datasiswa/create', [MasterDataController::class, 'storeSiswa']);
-    Route::post('/datasiswa/delete', [MasterDataController::class, 'bulkActionSiswa']);
-    Route::post('/us1/datasiswa/delete', [MasterDataController::class, 'bulkActionSiswa']);
-    Route::get('/datasiswa/downloadData/{id_kelas?}', [MasterDataController::class, 'exportSiswa']);
-    Route::get('/us1/datasiswa/downloadData/{id_kelas?}', [MasterDataController::class, 'exportSiswa']);
-});
-
 

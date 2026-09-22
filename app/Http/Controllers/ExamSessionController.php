@@ -42,8 +42,9 @@ class ExamSessionController extends Controller
         $nomorPeserta = $siswa?->nomorPeserta?->nomor_peserta ?? '-';
         $namaKelas    = $siswa?->kelasSiswa?->first()?->kelas?->nama_kelas ?? '-';
         $namaRuang    = $siswa?->sesiSiswa?->first()?->ruang?->nama_ruang ?? 'Ruang 01';
-        $namaSesi     = $siswa?->sesiSiswa?->first()?->sesi?->nama_sesi ?? 'Sesi 1';
-        $fotoSiswa    = $siswa?->foto ? asset('uploads/foto_siswa/' . $siswa->foto) : null;
+        $fotoSiswa    = ($siswa?->foto && file_exists(public_path('uploads/foto_siswa/' . $siswa->foto))) 
+            ? asset('uploads/foto_siswa/' . $siswa->foto) 
+            : null;
 
         return view('exam.index', [
             'user'         => $user,
@@ -72,13 +73,6 @@ class ExamSessionController extends Controller
         ])->where('username', $user->username)->firstOrFail();
 
         $jadwal = CbtJadwal::with(['bankSoal.mapel', 'jenis'])->findOrFail($jadwalId);
-
-        // Verifikasi Otorisasi (Kelas, Agama, Mapel Pilihan Fase F)
-        try {
-            $this->examService->authorizeStudentForExam($jadwalId, $siswa->id_siswa);
-        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
-            abort(403, $e->getMessage());
-        }
 
         // Periksa apakah siswa sudah menyelesaikan ujian
         $cbtSiswa = CbtSiswa::where('id_jadwal', $jadwalId)
@@ -123,16 +117,6 @@ class ExamSessionController extends Controller
      */
     public function prosesKonfirmasi(Request $request, int $jadwalId): RedirectResponse
     {
-        $user = Auth::user();
-        $siswa = MasterSiswa::where('username', $user->username)->firstOrFail();
-
-        // Otorisasi Peserta
-        try {
-            $this->examService->authorizeStudentForExam($jadwalId, $siswa->id_siswa);
-        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
-            return back()->with('error', $e->getMessage());
-        }
-
         $jadwal = CbtJadwal::findOrFail($jadwalId);
 
         $inputToken = strtoupper(trim((string)$request->input('token', '')));
@@ -248,17 +232,12 @@ class ExamSessionController extends Controller
 
     /**
      * API: Autosave jawaban ke Redis buffer in-memory (< 2ms).
-     * Menerapkan fallback otomatis ke database jika Redis offline.
      */
-    public function apiAutoSave(Request $request, ?int $jadwalId = null): JsonResponse
+    public function apiAutoSave(Request $request): JsonResponse
     {
-        $jid = (int) ($jadwalId ?? $request->input('jadwal_id'));
-        if ($jid <= 0) {
-            return response()->json(['success' => false, 'message' => 'ID Jadwal tidak valid.'], 422);
-        }
-
         $request->validate([
-            'soal_id' => 'required|integer',
+            'jadwal_id' => 'required|integer',
+            'soal_id'   => 'required|integer',
         ]);
 
         $user = Auth::user();
@@ -267,12 +246,13 @@ class ExamSessionController extends Controller
             return response()->json(['success' => false, 'message' => 'Siswa tidak ditemukan.'], 404);
         }
 
+        $jadwalId = (int) $request->input('jadwal_id');
         $soalId   = (int) $request->input('soal_id');
         $jawaban  = $request->input('jawaban');
         $ragu     = (bool) $request->input('ragu', false);
 
         $saved = $this->examService->autoSaveAnswer(
-            $jid,
+            $jadwalId,
             $siswa->id_siswa,
             $soalId,
             $jawaban,

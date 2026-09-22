@@ -63,13 +63,6 @@ class ExamViewController extends Controller
 
         $siswaId = (int) ($siswa?->id ?? $siswa?->id_siswa ?? 1);
 
-        // Otorisasi Akses Ujian (Kelas, Agama, Mapel Pilihan)
-        try {
-            app(\App\Services\Exam\ExamSessionService::class)->authorizeStudentForExam($jadwalId, $siswaId);
-        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
-            abort(403, $e->getMessage());
-        }
-
         // Generate / ambil auth token sesi ujian
         $authToken = '';
         if ($user) {

@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Siswa extends Model
@@ -17,28 +16,12 @@ class Siswa extends Model
         'nisn',
         'nama_lengkap',
         'jenis_kelamin',
-        'agama',
         'kelas_id',
         'sesi_id',
         'ruang_id',
         'nomor_peserta',
         'foto',
     ];
-
-    public function alokasiPilihan(): HasMany
-    {
-        return $this->hasMany(SiswaMapelPilihan::class, 'siswa_id', 'id');
-    }
-
-    public function mapelPilihan(): BelongsToMany
-    {
-        return $this->belongsToMany(
-            MasterMapel::class,
-            'siswa_mapel_pilihan',
-            'siswa_id',
-            'mapel_id'
-        )->withPivot('tahun_ajaran_id')->withTimestamps();
-    }
 
     public function user(): BelongsTo
     {

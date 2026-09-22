@@ -118,25 +118,4 @@ class MasterSiswa extends Model
     {
         return $this->hasMany(SiswaRombelTahun::class, 'siswa_id', 'id_siswa');
     }
-
-    /**
-     * Relasi ke entri alokasi mapel pilihan siswa (Kurikulum Merdeka).
-     */
-    public function alokasiPilihan(): HasMany
-    {
-        return $this->hasMany(SiswaMapelPilihan::class, 'siswa_id', 'id_siswa');
-    }
-
-    /**
-     * Relasi Many-to-Many ke mata pelajaran pilihan yang diambil siswa.
-     */
-    public function mapelPilihan(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
-    {
-        return $this->belongsToMany(
-            MasterMapel::class,
-            'siswa_mapel_pilihan',
-            'siswa_id',
-            'mapel_id'
-        )->withPivot('tahun_ajaran_id');
-    }
 }

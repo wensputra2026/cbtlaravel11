@@ -1,0 +1,70 @@
+video {
+    margin-bottom: 8px;
+    width: 100%;
+    height: 100%;
+}
+
+.media-container {
+    margin: 15px 0;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    max-width: 600px;
+}
+
+.media-container:fullscreen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #000;
+    width: 100vw;
+    height: 100vh;
+    padding: 0;
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 0;
+    z-index: 9999;
+}
+
+@media screen and (orientation: portrait) {
+    .media-container:fullscreen video {
+        width: 90%;
+        height: auto;
+    }
+}
+
+/* Landscape (horizontal) */
+@media screen and (orientation: landscape) {
+    .media-container:fullscreen video {
+        height: 90%;
+        width: auto;
+    }
+}
+
+.controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: space-between;
+}
+
+.time-display {
+    width: 100px;
+    text-align: center;
+}
+
+.play-progress-bar {
+    flex: 1;
+    height: 5px;
+}
+
+.play-count-display {
+    font-weight: bold;
+}
+
+.play-progress-bar[disabled] {
+    opacity: 1;
+    cursor: default;
+    accent-color: #2196f3;
+}

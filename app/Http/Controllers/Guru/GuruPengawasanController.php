@@ -30,37 +30,20 @@ class GuruPengawasanController extends Controller
     /**
      * Daftar Penugasan Ruang Pengawasan Ujian.
      */
-    public function index(Request $request): View
+    public function index(): View
     {
         $guru = $this->getGuru();
         $guruId = $guru?->id_guru ?? 0;
-        $search = $request->input('q');
 
-        $query = CbtPengawas::with(['jadwal.bankSoal.mapel', 'ruang', 'sesi'])
+        $pengawasans = CbtPengawas::with(['jadwal.bankSoal.mapel', 'ruang', 'sesi'])
             ->where('id_guru', $guruId)
-            ->orderBy('id_pengawas', 'desc');
-
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->whereHas('ruang', function ($rq) use ($search) {
-                    $rq->where('nama_ruang', 'like', "%{$search}%");
-                })->orWhereHas('sesi', function ($sq) use ($search) {
-                    $sq->where('nama_sesi', 'like', "%{$search}%");
-                })->orWhereHas('jadwal.bankSoal', function ($bq) use ($search) {
-                    $bq->where('bank_nama', 'like', "%{$search}%")
-                       ->orWhereHas('mapel', function ($mq) use ($search) {
-                           $mq->where('nama_mapel', 'like', "%{$search}%");
-                       });
-                });
-            });
-        }
-
-        $pengawasans = $query->paginate(10)->withQueryString();
+            ->orderBy('id_pengawas', 'desc')
+            ->get();
 
         $currentToken = $this->tokenService->getOrGenerateDynamicToken();
         $tokenTtl = $this->tokenService->getTokenRemainingSeconds();
 
-        return view('guru.pengawasan.index', compact('pengawasans', 'currentToken', 'tokenTtl', 'guru', 'search'));
+        return view('guru.pengawasan.index', compact('pengawasans', 'currentToken', 'tokenTtl', 'guru'));
     }
 
     /**

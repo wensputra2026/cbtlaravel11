@@ -27,10 +27,7 @@ class CbtSesiRuangController extends Controller
     {
         $ruangList = CbtRuang::all();
         $sesiList  = CbtSesi::all();
-        $pengawas  = CbtPengawas::with(['guru', 'jadwal.bankSoal', 'ruang', 'sesi'])
-            ->orderBy('id_pengawas', 'desc')
-            ->paginate(10)
-            ->withQueryString();
+        $pengawas  = CbtPengawas::with(['guru', 'jadwal.bankSoal', 'ruang', 'sesi'])->orderBy('id_pengawas', 'desc')->get();
         $guruList  = MasterGuru::orderBy('nama_guru', 'asc')->get();
         $jadwalList= CbtJadwal::with('bankSoal')->where('status', 1)->get();
 

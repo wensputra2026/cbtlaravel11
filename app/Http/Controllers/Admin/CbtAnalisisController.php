@@ -70,10 +70,19 @@ class CbtAnalisisController extends Controller
                         $jawaban = is_string($p->jawaban) ? json_decode($p->jawaban, true) : ($p->jawaban ?? []);
                         if (isset($jawaban[$soal->nomor_soal])) {
                             $dijawab++;
-                            $ans = strtoupper(trim((string)$jawaban[$soal->nomor_soal]));
-                            $key = strtoupper(trim((string)$soal->jawaban));
-                            if ($ans === $key) {
-                                $benar++;
+                            $ansRaw = $jawaban[$soal->nomor_soal];
+                            $keyRaw = $soal->jawaban;
+
+                            if (is_array($ansRaw) || is_array($keyRaw)) {
+                                if (is_array($ansRaw) && is_array($keyRaw) && $ansRaw == $keyRaw) {
+                                    $benar++;
+                                }
+                            } else {
+                                $ans = strtoupper(trim((string)$ansRaw));
+                                $key = strtoupper(trim((string)$keyRaw));
+                                if ($ans !== '' && $ans === $key) {
+                                    $benar++;
+                                }
                             }
                         }
                     }
@@ -89,7 +98,7 @@ class CbtAnalisisController extends Controller
                     $analisisSoal[] = [
                         'nomor'        => $soal->nomor_soal,
                         'jenis'        => $soal->jenis_soal,
-                        'kunci'        => $soal->jawaban,
+                        'kunci'        => is_array($soal->jawaban) ? 'Kompleks' : (string)($soal->jawaban ?? '-'),
                         'peserta'      => $dijawab,
                         'benar'        => $benar,
                         'persen_benar' => $persenBenar,

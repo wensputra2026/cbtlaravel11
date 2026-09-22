@@ -44,25 +44,15 @@ class CbtNilaiController extends Controller
 
         $jadwalId = $request->input('jadwal_id') ?? $jadwalList->first()?->id_jadwal;
         $selectedJadwal = null;
-        $pesertaList = collect();
+        $pesertaList = [];
 
         if ($jadwalId) {
             $selectedJadwal = CbtJadwal::with('bankSoal.mapel')->find($jadwalId);
             if ($selectedJadwal) {
-                $pesertaQuery = CbtSiswa::with(['siswa.kelasSiswa.kelas', 'siswa.rombelTahun'])
-                    ->where('id_jadwal', $jadwalId);
-
-                if ($request->filled('q')) {
-                    $search = $request->input('q');
-                    $pesertaQuery->whereHas('siswa', function ($sq) use ($search) {
-                        $sq->where('nama', 'like', "%{$search}%")
-                           ->orWhere('nisn', 'like', "%{$search}%");
-                    });
-                }
-
-                $pesertaList = $pesertaQuery->orderBy('id_cbt_siswa', 'asc')
-                    ->paginate(10)
-                    ->withQueryString();
+                $pesertaList = CbtSiswa::with(['siswa.kelasSiswa.kelas', 'siswa.rombelTahun'])
+                    ->where('id_jadwal', $jadwalId)
+                    ->orderBy('id_cbt_siswa', 'asc')
+                    ->get();
             }
         }
 
@@ -104,7 +94,7 @@ class CbtNilaiController extends Controller
     }
 
     /**
-     * Ekspor Nilai ke format Microsoft Excel (.xls).
+     * Ekspor Nilai ke format CSV/Excel.
      */
     public function export(int $jadwalId): Response
     {
@@ -114,43 +104,28 @@ class CbtNilaiController extends Controller
             ->get();
 
         $mapel = $jadwal->bankSoal->mapel->nama_mapel ?? 'Mapel';
-        $namaBank = $jadwal->bankSoal->bank_nama ?? 'Ujian';
-        $filename = 'Rekap_Nilai_' . preg_replace('/[^A-Za-z0-9_]/', '_', $namaBank) . '_' . date('Ymd_His') . '.xls';
+        $filename = 'Nilai_' . str_replace(' ', '_', $jadwal->bankSoal->bank_nama) . '_' . date('Ymd_His') . '.csv';
 
-        $headers = ['No', 'NISN', 'Nama Siswa', 'Kelas', 'Status Ujian', 'Waktu Mulai', 'Waktu Selesai', 'Nilai PG', 'Nilai Esai', 'Nilai Akhir'];
-        $rows = [];
+        $output = "No,NISN,Nama Siswa,Kelas,Status,Mulai,Selesai,Nilai PG,Nilai Esai,Nilai Akhir\n";
 
         foreach ($peserta as $idx => $p) {
             $siswa = $p->siswa;
-            $nama = $siswa->nama ?? '-';
+            $nama = str_replace(',', ' ', $siswa->nama ?? '-');
             $nisn = $siswa->nisn ?? '-';
             $kelas = $siswa->kelasSiswa->first()?->kelas->nama_kelas ?? '-';
             $status = $p->status == 2 ? 'Selesai' : ($p->status == 1 ? 'Sedang Mengerjakan' : 'Belum Mulai');
             
             $input = is_string($p->nilai_input) ? json_decode($p->nilai_input, true) : ($p->nilai_input ?? []);
-            $nilaiPg = (float)($input['pg_nilai'] ?? 0);
-            $nilaiEsai = (float)($input['essai_nilai'] ?? 0);
-            $nilaiAkhir = round($nilaiPg + $nilaiEsai, 2);
+            $nilaiPg = $input['pg_nilai'] ?? 0;
+            $nilaiEsai = $input['essai_nilai'] ?? 0;
+            $nilaiAkhir = (float)$nilaiPg + (float)$nilaiEsai;
 
-            $rows[] = [
-                $idx + 1,
-                $nisn,
-                $nama,
-                $kelas,
-                $status,
-                $p->mulai ?? '-',
-                $p->selesai ?? '-',
-                $nilaiPg,
-                $nilaiEsai,
-                $nilaiAkhir,
-            ];
+            $output .= ($idx + 1) . ",{$nisn},\"{$nama}\",{$kelas},{$status},{$p->mulai},{$p->selesai},{$nilaiPg},{$nilaiEsai},{$nilaiAkhir}\n";
         }
 
-        return \App\Services\Export\ExcelExportService::download(
-            'Rekap Nilai ' . mb_substr($namaBank, 0, 20),
-            $headers,
-            $rows,
-            $filename
-        );
+        return response($output, 200, [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ]);
     }
 }

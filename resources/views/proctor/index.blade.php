@@ -5,52 +5,58 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Panel Proktor & Pengawas | {{ $appSetting->nama_aplikasi_tampil }}</title>
+    <link rel="icon" type="image/png" href="{{ $appSetting->favicon_url ?? asset('favicon.png') }}">
+    <link rel="shortcut icon" href="{{ $appSetting->favicon_url ?? asset('favicon.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/sweetalert2.min.css') }}">
+    <script src="{{ asset('assets/vendor/sweetalert2.all.min.js') }}"></script>
     <script defer src="{{ asset('assets/vendor/alpine.min.js') }}"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; }
-        body { background-color: #0b1120; color: #f8fafc; min-height: 100vh; }
+        body { background-color: #f8fafc; color: #0f172a; min-height: 100vh; }
         .navbar {
-            background: #1e293b;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
             padding: 16px 32px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
-        .brand h2 { font-size: 16px; font-weight: 700; color: #fff; }
-        .brand p { font-size: 12px; color: #94a3b8; }
+        .brand h2 { font-size: 16px; font-weight: 800; color: #0f172a; }
+        .brand p { font-size: 12px; color: #64748b; }
         .container { max-width: 1200px; margin: 32px auto; padding: 0 24px; }
         .grid-layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; }
         
         /* Token Widget */
         .token-card {
-            background: #1e293b;
-            border: 1px solid #334155;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 16px;
             padding: 24px;
             text-align: center;
             height: fit-content;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
-        .token-title { font-size: 14px; font-weight: 600; color: #94a3b8; margin-bottom: 12px; }
+        .token-title { font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 12px; }
         .token-badge {
-            background: #0f172a;
-            border: 2px dashed #38bdf8;
+            background: #f0fdf4;
+            border: 2px dashed #10b981;
             border-radius: 12px;
             padding: 16px;
             font-size: 32px;
             font-weight: 800;
             letter-spacing: 6px;
-            color: #38bdf8;
+            color: #059669;
             font-family: monospace;
             margin-bottom: 16px;
         }
-        .token-ttl { font-size: 12px; color: #94a3b8; margin-bottom: 20px; }
+        .token-ttl { font-size: 12px; color: #64748b; margin-bottom: 20px; }
         .btn-gen-token {
             width: 100%;
-            background: linear-gradient(135deg, #0284c7, #0369a1);
+            background: #059669;
             color: white;
             border: none;
             padding: 12px;
@@ -58,46 +64,51 @@
             font-weight: 700;
             font-size: 14px;
             cursor: pointer;
+            transition: background 0.15s;
         }
-        .btn-gen-token:hover { opacity: 0.9; }
+        .btn-gen-token:hover { background: #047857; }
 
         /* Quick Print Links */
         .print-card {
-            background: #1e293b;
-            border: 1px solid #334155;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 16px;
             padding: 20px;
             margin-top: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
-        .print-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: #e2e8f0; }
+        .print-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: #0f172a; }
         .print-links { display: flex; flex-direction: column; gap: 8px; }
         .print-link {
-            color: #93c5fd;
+            color: #1e40af;
             text-decoration: none;
             font-size: 13px;
             font-weight: 600;
             padding: 8px 12px;
-            background: rgba(59, 130, 246, 0.1);
+            background: #eff6ff;
+            border: 1px solid #dbeafe;
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            transition: background 0.15s;
         }
-        .print-link:hover { background: rgba(59, 130, 246, 0.2); }
+        .print-link:hover { background: #dbeafe; }
 
         /* Jadwal List Table */
         .table-card {
-            background: #1e293b;
-            border: 1px solid #334155;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 16px;
             padding: 24px;
             overflow-x: auto;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
-        .table-card h2 { font-size: 18px; font-weight: 700; margin-bottom: 18px; }
+        .table-card h2 { font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 18px; }
         table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        th { text-align: left; padding: 12px 14px; background: #0f172a; color: #94a3b8; font-weight: 600; border-radius: 6px; }
-        td { padding: 14px; border-bottom: 1px solid #334155; color: #cbd5e1; }
-        tr:hover td { background: rgba(255, 255, 255, 0.02); }
+        th { text-align: left; padding: 12px 14px; background: #f8fafc; color: #475569; font-weight: 700; border-radius: 6px; border-bottom: 1px solid #e2e8f0; }
+        td { padding: 14px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+        tr:hover td { background: #f8fafc; }
         .btn-monitor {
             background: #2563eb;
             color: white;
@@ -107,6 +118,7 @@
             font-size: 13px;
             font-weight: 600;
             display: inline-block;
+            transition: background 0.15s;
         }
         .btn-monitor:hover { background: #1d4ed8; }
     </style>
@@ -164,18 +176,7 @@
 
             <!-- Konten Utama: Daftar Jadwal Ujian -->
             <div class="table-card">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 12px;">
-                    <div>
-                        <h2 style="margin-bottom: 4px;">Jadwal Ujian Aktif</h2>
-                        <span style="font-size: 12px; color: #94a3b8;">Total: <strong style="color: #fff;">{{ $jadwals->total() }}</strong> Jadwal Ujian</span>
-                    </div>
-                    <form action="{{ route('proctor.index') }}" method="GET" style="display: flex; align-items: center; gap: 8px;">
-                        <input type="text" name="q" value="{{ request('q') }}" placeholder="Cari mapel, bank, atau ID..." style="padding: 8px 14px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #fff; font-size: 13px; outline: none; width: 220px;">
-                        @if(request('q'))
-                            <a href="{{ route('proctor.index') }}" style="padding: 8px 12px; background: #334155; color: #cbd5e1; border-radius: 8px; font-size: 12px; text-decoration: none;">Reset</a>
-                        @endif
-                    </form>
-                </div>
+                <h2>Jadwal Ujian Aktif</h2>
                 <table>
                     <thead>
                         <tr>
@@ -202,8 +203,8 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <a href="{{ route('proctor.monitor', $jadwal->id_jadwal) }}" target="_blank" rel="noopener noreferrer" class="btn-monitor">
-                                        👁 Live Monitor ↗
+                                    <a href="{{ route('proctor.monitor', $jadwal->id_jadwal) }}" class="btn-monitor">
+                                        👁 Live Monitor
                                     </a>
                                 </td>
                                 <td>
@@ -218,12 +219,6 @@
                         @endforelse
                     </tbody>
                 </table>
-
-                @if($jadwals->hasPages())
-                    <div style="margin-top: 18px; padding-top: 16px; border-top: 1px solid #334155;">
-                        {{ $jadwals->links() }}
-                    </div>
-                @endif
             </div>
         </div>
     </div>
@@ -265,7 +260,16 @@
                             this.ttl = data.ttl;
                         }
                     } catch (e) {
-                        alert('Gagal membuat token: ' + e.message);
+                        if (window.Swal) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal Membuat Token',
+                                text: e.message || 'Terjadi gangguan saat generate token.',
+                                confirmButtonColor: '#2563eb'
+                            });
+                        } else {
+                            alert('Gagal membuat token: ' + e.message);
+                        }
                     }
                 },
 

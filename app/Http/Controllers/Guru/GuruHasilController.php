@@ -55,17 +55,23 @@ class GuruHasilController extends Controller
         if ($jadwalId) {
             $selectedJadwal = CbtJadwal::with('bankSoal.mapel')->find($jadwalId);
             if ($selectedJadwal) {
-                // Statistik global dihitung dari semua peserta jadwal ini
-                $allPeserta = CbtSiswa::where('id_jadwal', $jadwalId)->get();
-                $stats['total'] = count($allPeserta);
+                $pesertaList = CbtSiswa::with(['siswa.kelasSiswa.kelas', 'siswa.nomorPeserta'])
+                    ->where('id_jadwal', $jadwalId)
+                    ->orderBy('id_cbt_siswa', 'asc')
+                    ->get();
+
+                $stats['total'] = count($pesertaList);
                 $nilaiArr = [];
                 $kkm = 75;
 
-                foreach ($allPeserta as $p) {
+                foreach ($pesertaList as $p) {
                     $input = is_string($p->nilai_input) ? json_decode($p->nilai_input, true) : ($p->nilai_input ?? []);
                     $pg = (float)($input['pg_nilai'] ?? 0);
                     $esai = (float)($input['essai_nilai'] ?? 0);
                     $total = $pg + $esai;
+                    $p->skor_total = $total;
+                    $p->nilai_pg = $pg;
+                    $p->nilai_esai = $esai;
                     $nilaiArr[] = $total;
 
                     if ($total >= $kkm) {
@@ -80,29 +86,6 @@ class GuruHasilController extends Controller
                     $stats['terendah'] = min($nilaiArr);
                     $stats['rata_rata'] = round(array_sum($nilaiArr) / count($nilaiArr), 1);
                 }
-
-                // Paginate daftar peserta untuk tampilan tabel
-                $pesertaQuery = CbtSiswa::with(['siswa.kelasSiswa.kelas', 'siswa.nomorPeserta'])
-                    ->where('id_jadwal', $jadwalId);
-
-                if ($request->filled('q')) {
-                    $search = $request->input('q');
-                    $pesertaQuery->whereHas('siswa', function ($sq) use ($search) {
-                        $sq->where('nama', 'like', "%{$search}%")
-                           ->orWhere('nisn', 'like', "%{$search}%");
-                    });
-                }
-
-                $pesertaList = $pesertaQuery->orderBy('id_cbt_siswa', 'asc')
-                    ->paginate(10)
-                    ->withQueryString();
-
-                foreach ($pesertaList as $p) {
-                    $input = is_string($p->nilai_input) ? json_decode($p->nilai_input, true) : ($p->nilai_input ?? []);
-                    $p->nilai_pg = (float)($input['pg_nilai'] ?? 0);
-                    $p->nilai_esai = (float)($input['essai_nilai'] ?? 0);
-                    $p->skor_total = $p->nilai_pg + $p->nilai_esai;
-                }
             }
         }
 
@@ -110,7 +93,7 @@ class GuruHasilController extends Controller
     }
 
     /**
-     * Ekspor Nilai ke format Microsoft Excel (.xls) untuk jadwal yang diampu.
+     * Ekspor Nilai ke format CSV/Excel untuk jadwal yang diampu.
      */
     public function export(int $jadwalId): Response
     {
@@ -128,14 +111,13 @@ class GuruHasilController extends Controller
             ->get();
 
         $namaBank = $jadwal->bankSoal->bank_nama ?? 'Ujian';
-        $filename = 'Rekap_Nilai_Guru_' . preg_replace('/[^A-Za-z0-9_]/', '_', $namaBank) . '_' . date('Ymd_His') . '.xls';
+        $filename = 'Nilai_Guru_' . preg_replace('/[^A-Za-z0-9_]/', '_', $namaBank) . '_' . date('Ymd_His') . '.csv';
 
-        $headers = ['No', 'Nomor Peserta', 'NISN', 'Nama Siswa', 'Kelas', 'Status Ujian', 'Waktu Selesai', 'Nilai PG', 'Nilai Esai', 'Nilai Akhir'];
-        $rows = [];
+        $output = "No,Nomor Peserta,NISN,Nama Siswa,Kelas,Status,Waktu Selesai,Nilai PG,Nilai Esai,Nilai Akhir\n";
 
         foreach ($peserta as $idx => $p) {
             $siswa = $p->siswa;
-            $nama = $siswa->nama ?? '-';
+            $nama = str_replace([',', '"'], ' ', $siswa->nama ?? '-');
             $nisn = $siswa->nisn ?? '-';
             $nomorPeserta = $siswa->nomorPeserta?->nomor_peserta ?? '-';
             $kelas = $siswa->kelasSiswa->first()?->kelas->nama_kelas ?? '-';
@@ -144,28 +126,15 @@ class GuruHasilController extends Controller
             $input = is_string($p->nilai_input) ? json_decode($p->nilai_input, true) : ($p->nilai_input ?? []);
             $pg = (float)($input['pg_nilai'] ?? 0);
             $esai = (float)($input['essai_nilai'] ?? 0);
-            $akhir = round($pg + $esai, 2);
+            $akhir = $pg + $esai;
 
-            $rows[] = [
-                $idx + 1,
-                $nomorPeserta,
-                $nisn,
-                $nama,
-                $kelas,
-                $status,
-                $p->selesai ?? '-',
-                $pg,
-                $esai,
-                $akhir,
-            ];
+            $output .= ($idx + 1) . ",\"{$nomorPeserta}\",{$nisn},\"{$nama}\",{$kelas},{$status},\"{$p->selesai}\",{$pg},{$esai},{$akhir}\n";
         }
 
-        return \App\Services\Export\ExcelExportService::download(
-            'Nilai ' . mb_substr($namaBank, 0, 20),
-            $headers,
-            $rows,
-            $filename
-        );
+        return response($output, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ]);
     }
 
     /**
@@ -236,10 +205,19 @@ class GuruHasilController extends Controller
                         $jawaban = is_string($p->jawaban) ? json_decode($p->jawaban, true) : ($p->jawaban ?? []);
                         if (isset($jawaban[$soal->nomor_soal])) {
                             $dijawab++;
-                            $ans = strtoupper(trim((string)$jawaban[$soal->nomor_soal]));
-                            $key = strtoupper(trim((string)$soal->jawaban));
-                            if ($ans === $key) {
-                                $benar++;
+                            $ansRaw = $jawaban[$soal->nomor_soal];
+                            $keyRaw = $soal->jawaban;
+
+                            if (is_array($ansRaw) || is_array($keyRaw)) {
+                                if (is_array($ansRaw) && is_array($keyRaw) && $ansRaw == $keyRaw) {
+                                    $benar++;
+                                }
+                            } else {
+                                $ans = strtoupper(trim((string)$ansRaw));
+                                $key = strtoupper(trim((string)$keyRaw));
+                                if ($ans !== '' && $ans === $key) {
+                                    $benar++;
+                                }
                             }
                         }
                     }
@@ -255,7 +233,7 @@ class GuruHasilController extends Controller
                     $analisisSoal[] = [
                         'nomor'        => $soal->nomor_soal,
                         'jenis'        => $soal->jenis ?? $soal->jenis_soal ?? 1,
-                        'kunci'        => $soal->jawaban,
+                        'kunci'        => is_array($soal->jawaban) ? 'Kompleks' : (string)($soal->jawaban ?? '-'),
                         'peserta'      => $dijawab,
                         'benar'        => $benar,
                         'persen_benar' => $persenBenar,

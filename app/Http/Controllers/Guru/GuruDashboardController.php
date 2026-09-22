@@ -8,15 +8,13 @@ use App\Models\CbtJadwal;
 use App\Models\CbtPengawas;
 use App\Models\MasterGuru;
 use App\Services\Exam\CbtTokenService;
-use App\Services\Teacher\TeacherScopeService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class GuruDashboardController extends Controller
 {
     public function __construct(
-        protected CbtTokenService $tokenService,
-        protected TeacherScopeService $scopeService
+        protected CbtTokenService $tokenService
     ) {}
 
     /**
@@ -24,8 +22,11 @@ class GuruDashboardController extends Controller
      */
     public function index(): View
     {
-        $guru = $this->scopeService->getTeacherProfile();
-        $assignment = $this->scopeService->getTeacherAssignment($guru);
+        $user = Auth::user();
+        $guru = MasterGuru::where('id_user', $user->id)
+            ->orWhere('username', $user->username)
+            ->first();
+
         $guruId = $guru?->id_guru ?? 0;
 
         // Bank Soal yang dibuat oleh guru bersangkutan
@@ -44,7 +45,6 @@ class GuruDashboardController extends Controller
 
         return view('guru.dashboard', compact(
             'guru',
-            'assignment',
             'myBanks',
             'myPengawasan',
             'currentToken',

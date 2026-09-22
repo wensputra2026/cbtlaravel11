@@ -13,26 +13,10 @@ class RefMapel extends Model
         'kode_mapel',
         'nama_mapel',
         'kelompok',
-        'is_pilihan',
-        'agama',
-    ];
-
-    protected $casts = [
-        'is_pilihan' => 'boolean',
     ];
 
     public function bankSoal(): HasMany
     {
         return $this->hasMany(CbtBankSoalClean::class, 'mapel_id');
-    }
-
-    public function siswaPilihan(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
-    {
-        return $this->belongsToMany(
-            Siswa::class,
-            'siswa_mapel_pilihan',
-            'mapel_id',
-            'siswa_id'
-        )->withPivot('tahun_ajaran_id');
     }
 }

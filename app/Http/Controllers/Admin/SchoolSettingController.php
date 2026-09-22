@@ -53,14 +53,15 @@ class SchoolSettingController extends Controller
             @mkdir($uploadDir, 0777, true);
         }
 
-        // Upload Logo Kiri
+        // Upload Logo Kiri (Logo Sekolah & Favicon Tab Browser)
         if ($request->hasFile('logo_kiri')) {
             $file = $request->file('logo_kiri');
             $filename = 'logo_kiri.' . $file->getClientOriginalExtension();
             $file->move($uploadDir, $filename);
             $setting->logo_kiri = 'uploads/settings/' . $filename;
-            @copy($uploadDir . '/' . $filename, public_path('favicon.png'));
-            @copy($uploadDir . '/' . $filename, public_path('favicon.ico'));
+
+            // Sinkronkan langsung ke favicon browser (resolusi tajam 128x128 transparan)
+            $this->generateFavicon($uploadDir . '/' . $filename);
         }
 
         // Upload Logo Kanan
@@ -90,5 +91,53 @@ class SchoolSettingController extends Controller
         $setting->save();
 
         return back()->with('success', 'Pengaturan identitas sekolah, logo, dan nama aplikasi berhasil diperbarui seketika.');
+    }
+
+    /**
+     * Generate favicon PNG & ICO beresolusi tajam & transparan dari logo sekolah yang diunggah.
+     */
+    protected function generateFavicon(string $sourcePath): void
+    {
+        if (!file_exists($sourcePath)) return;
+
+        $info = @getimagesize($sourcePath);
+        if (!$info) return;
+
+        $src = null;
+        if ($info['mime'] === 'image/png') {
+            $src = @imagecreatefrompng($sourcePath);
+        } elseif ($info['mime'] === 'image/jpeg') {
+            $src = @imagecreatefromjpeg($sourcePath);
+        } elseif ($info['mime'] === 'image/webp') {
+            $src = @imagecreatefromwebp($sourcePath);
+        }
+
+        if (!$src) {
+            @copy($sourcePath, public_path('favicon.png'));
+            @copy($sourcePath, public_path('favicon.ico'));
+            return;
+        }
+
+        $origW = imagesx($src);
+        $origH = imagesy($src);
+        $targetSize = 128;
+        $dest = imagecreatetruecolor($targetSize, $targetSize);
+        imagealphablending($dest, false);
+        imagesavealpha($dest, true);
+        $transparent = imagecolorallocatealpha($dest, 255, 255, 255, 127);
+        imagefilledrectangle($dest, 0, 0, $targetSize, $targetSize, $transparent);
+
+        $ratio = min($targetSize / $origW, $targetSize / $origH);
+        $newW = (int) round($origW * $ratio);
+        $newH = (int) round($origH * $ratio);
+        $dstX = (int) round(($targetSize - $newW) / 2);
+        $dstY = (int) round(($targetSize - $newH) / 2);
+
+        imagecopyresampled($dest, $src, $dstX, $dstY, 0, 0, $newW, $newH, $origW, $origH);
+        imagepng($dest, public_path('favicon.png'), 8);
+        imagepng($dest, public_path('favicon.ico'), 8);
+
+        imagedestroy($dest);
+        imagedestroy($src);
     }
 }

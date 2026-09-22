@@ -45,7 +45,7 @@ class CbtAlokasiController extends Controller
             $query->whereIn('id_siswa', $siswaIds);
         }
 
-        $siswas = $query->orderBy('nama', 'asc')->paginate(10)->withQueryString();
+        $siswas = $query->orderBy('nama', 'asc')->paginate(30)->withQueryString();
 
         $kelasList = MasterKelas::orderBy('nama_kelas', 'asc')->get();
         $ruangList = CbtRuang::all();
@@ -136,7 +136,7 @@ class CbtAlokasiController extends Controller
             $query->whereIn('id_siswa', $siswaIds);
         }
 
-        $siswas = $query->orderBy('nama', 'asc')->paginate(10)->withQueryString();
+        $siswas = $query->orderBy('nama', 'asc')->paginate(30)->withQueryString();
         $kelasList = MasterKelas::orderBy('nama_kelas', 'asc')->get();
 
         return view('admin.cbt.nomor_peserta', compact('siswas', 'kelasList', 'kelasId'));

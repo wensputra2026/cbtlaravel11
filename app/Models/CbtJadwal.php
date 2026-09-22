@@ -81,6 +81,16 @@ class CbtJadwal extends Model
         return $this->belongsTo(CbtJenis::class, 'id_jenis', 'id_jenis');
     }
 
+    public function tp(): BelongsTo
+    {
+        return $this->belongsTo(MasterTp::class, 'id_tp', 'id_tp');
+    }
+
+    public function smt(): BelongsTo
+    {
+        return $this->belongsTo(MasterSmt::class, 'id_smt', 'id_smt');
+    }
+
     /**
      * Relasi ke sesi durasi / pengerjaan seluruh peserta.
      */

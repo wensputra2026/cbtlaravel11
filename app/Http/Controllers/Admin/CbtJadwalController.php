@@ -36,30 +36,11 @@ class CbtJadwalController extends Controller
             }
         }
 
-        if ($request->filled('q')) {
-            $search = $request->input('q');
-            $query->where(function ($q) use ($search) {
-                $q->where('id_jadwal', $search)
-                  ->orWhereHas('bankSoal', function ($bq) use ($search) {
-                      $bq->where('bank_nama', 'like', "%{$search}%")
-                         ->orWhere('bank_kode', 'like', "%{$search}%")
-                         ->orWhereHas('mapel', function ($mq) use ($search) {
-                             $mq->where('nama_mapel', 'like', "%{$search}%");
-                         });
-                  })->orWhereHas('jenis', function ($jq) use ($search) {
-                      $jq->where('nama_jenis', 'like', "%{$search}%")
-                         ->orWhere('kode_jenis', 'like', "%{$search}%");
-                  });
-            });
-        }
-
-        $jadwals = $query->paginate(10)->withQueryString();
+        $jadwals = $query->paginate(15)->withQueryString();
         $bankList = CbtBankSoal::with('mapel')->where('status', 1)->get();
         $jenisList = CbtJenis::all();
-        $kelasList = \App\Models\MasterKelas::orderBy('nama_kelas', 'asc')->get();
-        $guruList = \App\Models\MasterGuru::orderBy('nama_guru', 'asc')->get();
 
-        return view('admin.cbt.jadwal.index', compact('jadwals', 'bankList', 'jenisList', 'kelasList', 'guruList', 'allYears', 'selectedYear'));
+        return view('admin.cbt.jadwal.index', compact('jadwals', 'bankList', 'jenisList', 'allYears', 'selectedYear'));
     }
 
     /**
@@ -92,43 +73,10 @@ class CbtJadwalController extends Controller
             'token'        => (int) $request->input('token', 1),
             'hasil_tampil' => (int) $request->input('hasil_tampil', 0),
             'reset_login'  => (int) $request->input('reset_login', 0),
-            'pengawas'     => $request->input('pengawas', []),
             'status'       => 1,
         ]);
 
         return back()->with('success', 'Jadwal pelaksanaan ujian berhasil dibuat dan siap diujikan.');
-    }
-
-    /**
-     * Update Data Jadwal Ujian.
-     */
-    public function update(Request $request, int $id): RedirectResponse
-    {
-        $request->validate([
-            'id_bank'      => 'required|integer',
-            'id_jenis'     => 'required|integer',
-            'tgl_mulai'    => 'required|date',
-            'tgl_selesai'  => 'required|date|after_or_equal:tgl_mulai',
-            'durasi_ujian' => 'required|integer|min:10',
-        ]);
-
-        $jadwal = CbtJadwal::findOrFail($id);
-
-        $jadwal->update([
-            'id_bank'      => $request->input('id_bank'),
-            'id_jenis'     => $request->input('id_jenis'),
-            'tgl_mulai'    => $request->input('tgl_mulai'),
-            'tgl_selesai'  => $request->input('tgl_selesai'),
-            'durasi_ujian' => (int) $request->input('durasi_ujian'),
-            'acak_soal'    => (int) $request->input('acak_soal', 0),
-            'acak_opsi'    => (int) $request->input('acak_opsi', 0),
-            'token'        => (int) $request->input('token', 0),
-            'hasil_tampil' => (int) $request->input('hasil_tampil', 0),
-            'reset_login'  => (int) $request->input('reset_login', 0),
-            'pengawas'     => $request->input('pengawas', $jadwal->pengawas ?? []),
-        ]);
-
-        return back()->with('success', 'Jadwal ujian berhasil diperbarui.');
     }
 
     /**
@@ -156,20 +104,10 @@ class CbtJadwalController extends Controller
     // =========================================================================
     // MANAJEMEN JENIS UJIAN (PAS, PTS, PAT, USBK, DLL)
     // =========================================================================
-    public function indexJenis(Request $request): View
+    public function indexJenis(): View
     {
-        $search = $request->input('q');
-        $query = CbtJenis::orderBy('id_jenis', 'asc');
-
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('nama_jenis', 'like', "%{$search}%")
-                  ->orWhere('kode_jenis', 'like', "%{$search}%");
-            });
-        }
-
-        $jenisList = $query->paginate(10)->withQueryString();
-        return view('admin.cbt.jadwal.jenis', compact('jenisList', 'search'));
+        $jenisList = CbtJenis::orderBy('id_jenis', 'asc')->get();
+        return view('admin.cbt.jadwal.jenis', compact('jenisList'));
     }
 
     public function storeJenis(Request $request): RedirectResponse
@@ -181,19 +119,6 @@ class CbtJadwalController extends Controller
 
         CbtJenis::create($request->only('nama_jenis', 'kode_jenis'));
         return back()->with('success', 'Jenis Ujian baru berhasil disimpan.');
-    }
-
-    public function updateJenis(Request $request, int $id): RedirectResponse
-    {
-        $request->validate([
-            'nama_jenis' => 'required|string|max:100',
-            'kode_jenis' => 'required|string|max:20',
-        ]);
-
-        $jenis = CbtJenis::findOrFail($id);
-        $jenis->update($request->only('nama_jenis', 'kode_jenis'));
-
-        return back()->with('success', "Jenis Ujian [{$jenis->kode_jenis}] berhasil diperbarui.");
     }
 
     public function destroyJenis(int $id): RedirectResponse

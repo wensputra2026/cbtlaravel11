@@ -1,0 +1,336 @@
+.thumbnail-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px; /* Jarak antar item lebih besar */
+    margin-top: 6px;
+    padding: 20px;
+    border: 1px dashed #a0a0a0;
+    border-radius: 10px; /* Sudut lebih membulat */
+    min-height: 100px; /* Tinggi minimum lebih besar */
+    align-items: center;
+    justify-content: flex-start; /* Mulai dari kiri */
+    background-color: #fdfdfd;
+    position: relative; /* Untuk positioning tombol plus */
+}
+.thumbnail-item {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease-in-out, border-color 0.2s ease;
+    cursor: zoom-in;
+    overflow: hidden; /* Ensure delete button doesn't overflow */
+}
+.thumbnail-item:hover {
+    transform: scale(1.05);
+    border-color: #007bff;
+}
+.thumbnail-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block; /* Remove extra space below image */
+}
+
+.thumbnail-btn-group {
+    position: absolute;
+    top: 4px; /* Adjust to position outside the top-right corner */
+    right: 4px; /* Adjust to position outside the top-right corner */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+    transition: background-color 0.2s ease;
+    opacity: 0; /* Hidden by default */
+    visibility: hidden;
+    pointer-events: none; /* Do not block clicks on thumbnail */
+}
+
+.thumbnail-item:hover .thumbnail-btn-group {
+    opacity: 1; /* Show on hover */
+    visibility: visible;
+    pointer-events: auto; /* Enable clicks */
+}
+
+/*
+.delete-button:hover {
+    background-color: #c82333;
+}
+ */
+
+.delete-button {
+    background-color: #dc3545; /* Red color */
+    color: white;
+    border: none;
+    border-radius: 50%; /* Make it round */
+    width: 24px;
+    height: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2em;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    pointer-events: none; /* Do not block clicks on thumbnail */
+}
+
+.add-photo-button {
+    width: 100px;
+    height: 100px;
+    border: 1px dashed #007bff; /* Border biru putus-putus */
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 3em; /* Ukuran tanda plus */
+    color: #007bff;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    background-color: #e6f2ff; /* Latar belakang biru muda */
+}
+.add-photo-button:hover {
+    background-color: #d0e8ff; /* Lebih gelap saat hover */
+    border-color: #0056b3; /* Border lebih gelap saat hover */
+    transform: translateY(-2px);
+}
+.add-photo-button:active {
+    transform: translateY(0);
+}
+
+/* Custom Message Box Styles */
+.message-box-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1054;
+}
+.message-box {
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.4);
+    text-align: center;
+    max-width: 350px;
+    width: 90%;
+    border: 1px solid #ddd;
+}
+.message-box p {
+    margin-bottom: 25px;
+    font-size: 1.1em;
+    color: #333;
+}
+.message-box button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background-color 0.2s ease;
+    width: auto; /* Override full width for this button */
+    margin-top: 0; /* Override margin-top */
+}
+.message-box button:hover {
+    background-color: #0056b3;
+    transform: none; /* Remove transform for this button */
+}
+
+/* Fullscreen Preview Modal Styles */
+.fullscreen-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85); /* Latar belakang gelap transparan */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1055; /* Lebih tinggi dari message box */
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+.fullscreen-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.fullscreen-content {
+    position: relative;
+    /* Menggunakan padding untuk margin, bukan max-width/height */
+    width: 100%;
+    height: 100%;
+    padding: 20px; /* Memberikan ruang di sekitar gambar */
+    box-sizing: border-box; /* Pastikan padding disertakan dalam lebar/tinggi total */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.fullscreen-content img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain; /* Memastikan gambar pas tanpa terpotong */
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.fullscreen-button-group {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    top: 20px;
+    right: 20px;
+    background-color: rgba(255, 255, 255, 0.5);
+    border-radius: 16px;
+    padding: 5px;
+    transition: background-color 0.2s ease;
+}
+
+.fullscreen-close-button {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 2.5em;
+    cursor: pointer;
+    padding: 5px 10px;
+    margin: 6px 0;
+}
+
+.prev-container {
+    background-color: #fefff9;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    width: 100%;
+    overflow: hidden;
+}
+
+.prev-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    background-color: #e6f4ea; /* Light green background for header */
+}
+
+.prev-header h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.prev-header .prev-more-options {
+    font-size: 24px;
+    cursor: pointer;
+    color: #5f6368; /* Google Grey */
+}
+
+.prev-tab-list {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.prev-tab-item {
+    display: flex;
+    padding: 12px 12px;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.2s ease;
+}
+
+.prev-tab-item:last-child {
+    border-bottom: none;
+}
+
+.prev-tab-item:hover {
+    background-color: #f8f8f8;
+}
+
+.prev-tab-icon {
+    width: 40px;
+    height: 40px;
+    margin-right: 12px;
+    border-radius: 8px;
+    background-color: #f2f3f8; /* Light grey placeholder */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 18px;
+    padding: 8px;
+    color: #4285f4; /* A shade of blue for the icon if it's a letter */
+    overflow: hidden; /* Ensure images fit within the circle */
+    margin-inline: 8px;
+    position: relative;
+}
+
+.prev-tab-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.prev-tab-content {
+    flex-grow: 1;
+    margin-left: 12px;
+}
+
+.prev-tab-content .prev-title {
+    font-size: 15px;
+    font-weight: 400;
+    color: #3c4043; /* Dark grey for title */
+    margin-bottom: 2px;
+}
+
+.prev-tab-content .prev-url-info {
+    font-size: 13px;
+    color: #70757a; /* Medium grey for URL and visited info */
+}
+
+.prev-tab-content .prev-url-info {
+    font-weight: 400;
+    color: #70757a;
+}
+
+.prev-domain {
+    font-weight: 400;
+    color: #989fa6;
+}
+
+.prev-tab-content .prev-url-info .prev-visited-time {
+    color: #70757a;
+}
+
+.btn-more:after {
+    content: '\2807';
+    font-size: 20px;
+}
+
+.prev-see-more {
+    padding: 16px 20px;
+    text-align: left;
+}
+
+.prev-see-more a {
+    color: #1a73e8; /* Google Blue */
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.prev-see-more a:hover {
+    text-decoration: underline;
+}

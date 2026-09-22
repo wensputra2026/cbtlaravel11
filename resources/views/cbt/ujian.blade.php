@@ -1,10 +1,21 @@
 <!DOCTYPE html>
-<html lang="id" class="h-full bg-slate-950">
+<html lang="id" class="h-full bg-slate-100">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $namaUjian }} - {{ $namaMapel }} | {{ $appSetting->nama_aplikasi_tampil }}</title>
+    <link rel="icon" type="image/png" href="{{ $appSetting->favicon_url ?? asset('favicon.png') }}">
+    <link rel="shortcut icon" href="{{ $appSetting->favicon_url ?? asset('favicon.png') }}">
+
+    <script>
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('cbt_theme', 'light');
+    </script>
+
+    <!-- SweetAlert2 (Offline Local Vendor) -->
+    <link rel="stylesheet" href="{{ asset('assets/vendor/sweetalert2.min.css') }}">
+    <script src="{{ asset('assets/vendor/sweetalert2.all.min.js') }}"></script>
 
     <!-- Tailwind CSS (Offline Local Vendor) -->
     <script src="{{ asset('assets/vendor/tailwind.min.js') }}"></script>
@@ -36,12 +47,6 @@
     <!-- Alpine.js 3.x (Offline Local Vendor, defer) -->
     <script defer src="{{ asset('assets/vendor/alpine.min.js') }}"></script>
 
-    <!-- KaTeX Native LaTeX Formula Rendering (100% Offline Local Assets) -->
-    <link rel="stylesheet" href="{{ asset('vendor/katex/katex.min.css') }}">
-    <script src="{{ asset('vendor/katex/katex.min.js') }}"></script>
-    <script src="{{ asset('vendor/katex/auto-render.min.js') }}"></script>
-    <script src="{{ asset('vendor/katex/contrib/mhchem.min.js') }}"></script>
-
     <style>
         /* Anti-Cheat: Mencegah seleksi teks dan klik kanan */
         body {
@@ -57,14 +62,14 @@
             height: 6px;
         }
         ::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.6);
+            background: #f1f5f9;
         }
         ::-webkit-scrollbar-thumb {
-            background: rgba(100, 116, 139, 0.5);
+            background: #cbd5e1;
             border-radius: 9999px;
         }
         ::-webkit-scrollbar-thumb:hover {
-            background: rgba(148, 163, 184, 0.8);
+            background: #94a3b8;
         }
 
         /* Render Konten HTML Soal & Opsi */
@@ -74,7 +79,7 @@
             border-radius: 0.5rem;
             margin-top: 0.75rem;
             margin-bottom: 0.75rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid #e2e8f0;
             display: inline-block;
             cursor: zoom-in;
         }
@@ -84,7 +89,7 @@
             margin: 1rem 0;
         }
         .soal-content th, .soal-content td {
-            border: 1px solid #475569;
+            border: 1px solid #cbd5e1;
             padding: 0.5rem 0.75rem;
         }
         .soal-content p {
@@ -104,7 +109,7 @@
 </head>
 
 <body
-    class="h-full bg-slate-950 text-slate-100 flex flex-col antialiased select-none overflow-hidden"
+    class="h-full bg-slate-100 text-slate-800 flex flex-col antialiased select-none overflow-hidden"
     x-data="cbtExam({
         jadwalId: {{ $jadwalId }},
         siswaId: {{ $siswaId }},
@@ -125,7 +130,7 @@
     <!-- ================================================================= -->
     <!-- 1. TOP NAVIGATION & STATUS BAR                                    -->
     <!-- ================================================================= -->
-    <header class="h-16 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 flex items-center justify-between px-4 sm:px-6 z-30 shrink-0">
+    <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 z-30 shrink-0 shadow-xs">
         
         <!-- Sisi Kiri: Identitas Ujian & Peserta -->
         <div class="flex items-center gap-3 sm:gap-4">
@@ -135,26 +140,26 @@
                     @if($foto)
                         <img src="{{ $foto }}" alt="{{ $namaSiswa }}" class="w-full h-full object-cover rounded-[10px]">
                     @else
-                        <div class="w-full h-full bg-slate-800 rounded-[10px] flex items-center justify-center font-bold text-sm text-brand-300">
+                        <div class="w-full h-full bg-slate-100 rounded-[10px] flex items-center justify-center font-bold text-sm text-brand-600">
                             {{ strtoupper(substr($namaSiswa, 0, 2)) }}
                         </div>
                     @endif
                 </div>
-                <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-slate-900"></div>
+                <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-white"></div>
             </div>
 
             <!-- Teks Nama & Info Ujian -->
             <div class="leading-tight">
                 <div class="flex items-center gap-2">
-                    <h2 class="font-bold text-sm sm:text-base text-white tracking-wide truncate max-w-[150px] sm:max-w-xs md:max-w-sm">
+                    <h2 class="font-bold text-sm sm:text-base text-slate-900 tracking-wide truncate max-w-[150px] sm:max-w-xs md:max-w-sm">
                         {{ $namaSiswa }}
                     </h2>
-                    <span class="hidden md:inline-block px-2 py-0.5 text-[11px] font-semibold bg-slate-800 text-slate-300 border border-slate-700 rounded-md">
+                    <span class="hidden md:inline-block px-2 py-0.5 text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200 rounded-md">
                         {{ $kelas }} &bull; {{ $ruang }}
                     </span>
                 </div>
-                <p class="text-xs text-slate-400 truncate max-w-[200px] sm:max-w-xs">
-                    <span class="text-brand-400 font-medium">{{ $namaMapel }}</span> &bull; {{ $namaUjian }}
+                <p class="text-xs text-slate-500 truncate max-w-[200px] sm:max-w-xs">
+                    <span class="text-brand-600 font-semibold">{{ $namaMapel }}</span> &bull; {{ $namaUjian }}
                 </p>
             </div>
         </div>
@@ -163,47 +168,47 @@
         <div class="flex items-center gap-2 sm:gap-4">
             
             <!-- Autosave Sync Indicator (Asinkron Non-Blocking) -->
-            <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 text-xs shadow-inner">
+            <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs shadow-xs">
                 <template x-if="saveStatus === 'saving'">
-                    <span class="flex items-center gap-1.5 text-amber-400 font-medium">
-                        <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                    <span class="flex items-center gap-1.5 text-amber-600 font-medium">
+                        <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
                         <span>Menyimpan...</span>
                     </span>
                 </template>
                 <template x-if="saveStatus === 'synced'">
-                    <span class="flex items-center gap-1.5 text-emerald-400 font-medium">
-                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span class="flex items-center gap-1.5 text-emerald-600 font-medium">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                         <span>Tersimpan (Synced)</span>
                     </span>
                 </template>
                 <template x-if="saveStatus === 'offline'">
-                    <span class="flex items-center gap-1.5 text-rose-400 font-medium" title="Koneksi terputus, jawaban dicadangkan di memori perangkat lokal">
-                        <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+                    <span class="flex items-center gap-1.5 text-rose-600 font-medium" title="Koneksi terputus, jawaban dicadangkan di memori perangkat lokal">
+                        <span class="w-2 h-2 rounded-full bg-rose-500"></span>
                         <span>Cadangan Offline</span>
                     </span>
                 </template>
             </div>
 
             <!-- Font Resizer Controller (Kecil, Normal, Besar) -->
-            <div class="hidden md:flex items-center bg-slate-800/90 rounded-lg p-0.5 border border-slate-700">
+            <div class="hidden md:flex items-center bg-slate-100 rounded-lg p-0.5 border border-slate-200">
                 <button
                     type="button"
                     @click="setFontSize('small')"
-                    :class="fontSize === 'small' ? 'bg-brand-600 text-white font-bold shadow' : 'text-slate-400 hover:text-white'"
+                    :class="fontSize === 'small' ? 'bg-brand-600 text-white font-bold shadow' : 'text-slate-600 hover:text-slate-900'"
                     class="px-2.5 py-1 text-xs rounded transition"
                     title="Ukuran Teks Kecil"
                 >A-</button>
                 <button
                     type="button"
                     @click="setFontSize('normal')"
-                    :class="fontSize === 'normal' ? 'bg-brand-600 text-white font-bold shadow' : 'text-slate-400 hover:text-white'"
+                    :class="fontSize === 'normal' ? 'bg-brand-600 text-white font-bold shadow' : 'text-slate-600 hover:text-slate-900'"
                     class="px-2.5 py-1 text-xs rounded transition"
                     title="Ukuran Teks Normal"
                 >A</button>
                 <button
                     type="button"
                     @click="setFontSize('large')"
-                    :class="fontSize === 'large' ? 'bg-brand-600 text-white font-bold shadow' : 'text-slate-400 hover:text-white'"
+                    :class="fontSize === 'large' ? 'bg-brand-600 text-white font-bold shadow' : 'text-slate-600 hover:text-slate-900'"
                     class="px-2.5 py-1 text-xs rounded transition"
                     title="Ukuran Teks Besar"
                 >A+</button>
@@ -213,8 +218,8 @@
             <div
                 class="flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-xl border transition-all"
                 :class="sisaDetik < 300
-                    ? 'bg-rose-950/90 border-rose-500 text-rose-400 animate-timer-critical shadow-lg shadow-rose-900/50'
-                    : 'bg-slate-900 border-slate-700 text-amber-400 shadow-inner'"
+                    ? 'bg-rose-50 border-rose-300 text-rose-600 animate-timer-critical shadow-sm'
+                    : 'bg-white border-slate-200 text-amber-600 shadow-xs'"
             >
                 <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -228,7 +233,7 @@
             <button
                 type="button"
                 @click="toggleFullscreen()"
-                class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition"
+                class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition"
                 :title="isFullscreen ? 'Keluar Layar Penuh' : 'Mode Layar Penuh (Full Screen)'"
             >
                 <svg x-show="!isFullscreen" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -261,38 +266,38 @@
         <!-- ============================================================= -->
         <!-- A. AREA UTAMA PENGERJAAN SOAL (KIRI / TENGAH)                 -->
         <!-- ============================================================= -->
-        <main class="flex-1 flex flex-col h-full overflow-hidden bg-slate-950 relative">
+        <main class="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 relative">
 
             <!-- Loading Spinner State -->
-            <div x-show="isLoading" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-sm">
+            <div x-show="isLoading" class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm">
                 <div class="w-14 h-14 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                <h3 class="text-lg font-bold text-white tracking-wide">Memuat Paket Ujian...</h3>
-                <p class="text-xs text-slate-400 mt-1">Mengambil butir soal dan menyinkronkan token keamanan</p>
+                <h3 class="text-lg font-bold text-slate-900 tracking-wide">Memuat Paket Ujian...</h3>
+                <p class="text-xs text-slate-500 mt-1">Mengambil butir soal dan menyinkronkan token keamanan</p>
             </div>
 
             <!-- Error Fatal State (Misal Ujian Belum Dibuka / Nonaktif) -->
-            <div x-show="errorMessage && !isLoading" class="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 text-center bg-slate-950">
-                <div class="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-500 flex items-center justify-center mb-4">
+            <div x-show="errorMessage && !isLoading" class="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 text-center bg-white">
+                <div class="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mb-4">
                     <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                 </div>
-                <h3 class="text-xl font-bold text-white mb-2" x-text="errorMessage">Terjadi Kesalahan</h3>
-                <p class="text-sm text-slate-400 max-w-md mb-6">Hubungi proktor atau pengawas ruangan jika Anda mengalami kendala saat memulai sesi ujian.</p>
+                <h3 class="text-xl font-bold text-slate-900 mb-2" x-text="errorMessage">Terjadi Kesalahan</h3>
+                <p class="text-sm text-slate-500 max-w-md mb-6">Hubungi proktor atau pengawas ruangan jika Anda mengalami kendala saat memulai sesi ujian.</p>
                 <a href="{{ route('exam.index') }}" class="px-6 py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl text-sm transition">
                     Kembali ke Beranda Ujian
                 </a>
             </div>
 
             <!-- Header Butir Soal: Nomor Soal, Badge Tipe & Bobot -->
-            <div x-show="!isLoading && !errorMessage && currentSoal" class="bg-slate-900/60 border-b border-slate-800/80 px-6 py-3 flex items-center justify-between shrink-0">
+            <div x-show="!isLoading && !errorMessage && currentSoal" class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shrink-0 shadow-xs">
                 <div class="flex items-center gap-3">
-                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-brand-600/20 text-brand-300 font-bold text-sm border border-brand-500/30">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-brand-50 text-brand-700 font-bold text-sm border border-brand-200">
                         <span x-text="currentIndex + 1">1</span>
                     </span>
                     <div>
-                        <span class="text-xs text-slate-400 font-medium">Nomor Soal</span>
-                        <h4 class="text-sm font-bold text-white">
+                        <span class="text-xs text-slate-500 font-medium">Nomor Soal</span>
+                        <h4 class="text-sm font-bold text-slate-900">
                             Soal <span x-text="currentIndex + 1">1</span> dari <span x-text="soalList.length">0</span>
                         </h4>
                     </div>
@@ -308,7 +313,7 @@
                         Pilihan Ganda
                     </span>
                     <!-- Bobot Soal -->
-                    <span class="hidden sm:inline-block px-2.5 py-1 text-xs font-medium bg-slate-800 text-slate-300 rounded-md border border-slate-700">
+                    <span class="hidden sm:inline-block px-2.5 py-1 text-xs font-medium bg-slate-100 text-slate-700 rounded-md border border-slate-200">
                         Bobot: <span x-text="currentSoal?.bobot || '1.0'">1.0</span>
                     </span>
                 </div>
@@ -316,7 +321,6 @@
 
             <!-- Konten Lembar Soal (Scrollable Container Zero-Latency) -->
             <div
-                id="exam-content-area"
                 x-show="!isLoading && !errorMessage && currentSoal"
                 class="flex-1 overflow-y-auto px-6 sm:px-10 py-6 space-y-6"
                 :class="{
@@ -326,22 +330,22 @@
                 }"
             >
                 <!-- Card Pertanyaan Soal -->
-                <div class="bg-slate-900/80 border border-slate-800/90 rounded-2xl p-6 shadow-xl backdrop-blur-sm">
+                <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
                     <!-- HTML Pertanyaan -->
                     <div
-                        class="soal-content text-slate-100 font-normal leading-relaxed break-words"
+                        class="soal-content text-slate-900 font-normal leading-relaxed break-words"
                         x-html="currentSoal?.pertanyaan || currentSoal?.soal || '<p class=\'text-slate-500 italic\'>Konten soal belum tersedia.</p>'"
                     ></div>
 
                     <!-- Lampiran Media / Gambar Tambahan -->
                     <template x-if="currentSoal?.media">
-                        <div class="mt-4 pt-4 border-t border-slate-800">
-                            <span class="text-xs text-slate-400 block mb-2 font-medium">Lampiran Gambar:</span>
+                        <div class="mt-4 pt-4 border-t border-slate-200">
+                            <span class="text-xs text-slate-500 block mb-2 font-medium">Lampiran Gambar:</span>
                             <img
                                 :src="'{{ asset('uploads/bank_soal') }}/' + currentSoal.media"
                                 @error="$event.target.src = '{{ asset('uploads') }}/' + currentSoal.media"
                                 alt="Gambar Soal"
-                                class="max-h-96 rounded-xl border border-slate-700 shadow-md object-contain cursor-zoom-in"
+                                class="max-h-96 rounded-xl border border-slate-200 shadow-xs object-contain cursor-zoom-in"
                                 @click="openLightbox($event.target.src)"
                             >
                         </div>
@@ -358,22 +362,22 @@
                     <!-- ----------------------------------------------------- -->
                     <template x-if="currentSoal && (currentSoal.jenis_soal == 1 || currentSoal.jenis == 1 || !currentSoal.jenis_soal)">
                         <div class="space-y-3">
-                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Pilihan Jawaban (Pilih Satu):</span>
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Pilihan Jawaban (Pilih Satu):</span>
                             <div class="grid grid-cols-1 gap-2.5">
                                 <template x-for="(opsiItem, idx) in getFormattedOptions(currentSoal)" :key="opsiItem.label">
                                     <label
                                         @click="selectOpsi(opsiItem.label)"
                                         class="flex items-start gap-4 p-4 rounded-xl border transition-all cursor-pointer group"
                                         :class="currentJawaban === opsiItem.label
-                                            ? 'bg-brand-600/15 border-brand-500 text-white shadow-md shadow-brand-500/10 ring-1 ring-brand-500'
-                                            : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:bg-slate-800/80 hover:border-slate-700'"
+                                            ? 'bg-brand-50 border-brand-500 text-brand-900 shadow-xs ring-1 ring-brand-500'
+                                            : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50 hover:border-slate-300'"
                                     >
                                         <!-- Bulatan Huruf Opsi (A, B, C, D, E) -->
                                         <div
                                             class="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 transition-colors"
                                             :class="currentJawaban === opsiItem.label
-                                                ? 'bg-brand-600 text-white shadow-sm'
-                                                : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700 group-hover:text-white'"
+                                                ? 'bg-brand-600 text-white shadow-xs'
+                                                : 'bg-slate-100 text-slate-700 group-hover:bg-slate-200 group-hover:text-slate-900'"
                                             x-text="opsiItem.label"
                                         ></div>
 
@@ -384,7 +388,7 @@
                                         <div class="pt-1.5 shrink-0">
                                             <div
                                                 class="w-5 h-5 rounded-full border flex items-center justify-center transition"
-                                                :class="currentJawaban === opsiItem.label ? 'border-brand-500 bg-brand-600' : 'border-slate-700 bg-slate-800'"
+                                                :class="currentJawaban === opsiItem.label ? 'border-brand-500 bg-brand-600' : 'border-slate-300 bg-white'"
                                             >
                                                 <div x-show="currentJawaban === opsiItem.label" class="w-2 h-2 rounded-full bg-white"></div>
                                             </div>
@@ -398,7 +402,7 @@
                                 <button
                                     type="button"
                                     @click="clearJawaban()"
-                                    class="text-xs text-rose-400 hover:text-rose-300 font-medium underline transition"
+                                    class="text-xs text-rose-600 hover:text-rose-700 font-medium underline transition"
                                 >
                                     Hapus Pilihan Jawaban
                                 </button>
@@ -411,22 +415,22 @@
                     <!-- ----------------------------------------------------- -->
                     <template x-if="currentSoal && (currentSoal.jenis_soal == 2 || currentSoal.jenis == 2)">
                         <div class="space-y-3">
-                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Pilihan Jawaban (Dapat Memilih Lebih dari Satu):</span>
+                            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Pilihan Jawaban (Dapat Memilih Lebih dari Satu):</span>
                             <div class="grid grid-cols-1 gap-2.5">
                                 <template x-for="(opsiItem, idx) in getFormattedOptions(currentSoal)" :key="opsiItem.label">
                                     <label
                                         @click="toggleOpsiKompleks(opsiItem.label)"
                                         class="flex items-start gap-4 p-4 rounded-xl border transition-all cursor-pointer group"
                                         :class="isOpsiKompleksSelected(opsiItem.label)
-                                            ? 'bg-brand-600/15 border-brand-500 text-white shadow-md ring-1 ring-brand-500'
-                                            : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:bg-slate-800/80 hover:border-slate-700'"
+                                            ? 'bg-brand-50 border-brand-500 text-brand-900 shadow-xs ring-1 ring-brand-500'
+                                            : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50 hover:border-slate-300'"
                                     >
                                         <!-- Square Checkbox Huruf -->
                                         <div
                                             class="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shrink-0 transition-colors"
                                             :class="isOpsiKompleksSelected(opsiItem.label)
                                                 ? 'bg-brand-600 text-white'
-                                                : 'bg-slate-800 text-slate-300 group-hover:bg-slate-700'"
+                                                : 'bg-slate-100 text-slate-700 group-hover:bg-slate-200'"
                                             x-text="opsiItem.label"
                                         ></div>
 
@@ -435,7 +439,7 @@
                                         <div class="pt-1.5 shrink-0">
                                             <div
                                                 class="w-5 h-5 rounded-md border flex items-center justify-center transition"
-                                                :class="isOpsiKompleksSelected(opsiItem.label) ? 'border-brand-500 bg-brand-600 text-white' : 'border-slate-700 bg-slate-800'"
+                                                :class="isOpsiKompleksSelected(opsiItem.label) ? 'border-brand-500 bg-brand-600 text-white' : 'border-slate-300 bg-white'"
                                             >
                                                 <svg x-show="isOpsiKompleksSelected(opsiItem.label)" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
@@ -452,24 +456,24 @@
                     <!-- TIPE 3: MENJODOHKAN (MATCHING PAIR INTERFACE)          -->
                     <!-- ----------------------------------------------------- -->
                     <template x-if="currentSoal && (currentSoal.jenis_soal == 3 || currentSoal.jenis == 3)">
-                        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-lg">
+                        <div class="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-xs">
                             <div class="flex items-center justify-between">
-                                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Pasangkan Pernyataan Kiri dengan Pilihan Kanan:</span>
-                                <span class="text-xs text-brand-400 font-mono" x-text="Object.keys(currentJawaban || {}).length + ' Pasangan Dipilih'"></span>
+                                <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Pasangkan Pernyataan Kiri dengan Pilihan Kanan:</span>
+                                <span class="text-xs text-brand-600 font-mono font-bold" x-text="Object.keys(currentJawaban || {}).length + ' Pasangan Dipilih'"></span>
                             </div>
                             
                             <div class="space-y-3">
                                 <template x-for="(baris, bIndex) in getMenjodohkanRows()" :key="baris.id">
-                                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl bg-slate-950/70 border border-slate-800 transition hover:border-slate-700">
-                                        <div class="flex-1 text-sm sm:text-base text-slate-200 font-medium leading-snug">
-                                            <span class="inline-block px-2 py-0.5 mr-2 rounded bg-slate-800 text-brand-400 text-xs font-bold" x-text="'#' + (bIndex + 1)"></span>
+                                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200 transition hover:border-slate-300">
+                                        <div class="flex-1 text-sm sm:text-base text-slate-800 font-medium leading-snug">
+                                            <span class="inline-block px-2 py-0.5 mr-2 rounded bg-white text-brand-700 border border-slate-200 text-xs font-bold" x-text="'#' + (bIndex + 1)"></span>
                                             <span x-html="baris.premis"></span>
                                         </div>
                                         
                                         <div class="w-full sm:w-72 shrink-0">
                                             <select
                                                 @change="setMenjodohkanValue(baris.id, $event.target.value)"
-                                                class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-brand-500 transition shadow-inner"
+                                                class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-brand-500 transition shadow-xs"
                                             >
                                                 <option value="">-- Pilih Pasangan --</option>
                                                 <template x-for="targetOpsi in getMenjodohkanTargets()" :key="targetOpsi.key">
@@ -491,8 +495,8 @@
                     <!-- TIPE 4: ISIAN SINGKAT                                 -->
                     <!-- ----------------------------------------------------- -->
                     <template x-if="currentSoal && (currentSoal.jenis_soal == 4 || currentSoal.jenis == 4)">
-                        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-3 shadow-lg">
-                            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                        <div class="bg-white border border-slate-200 rounded-2xl p-6 space-y-3 shadow-xs">
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
                                 Tuliskan Jawaban Singkat:
                             </label>
                             <input
@@ -500,9 +504,9 @@
                                 :value="currentJawaban || ''"
                                 @input="updateIsianSingkatDebounced($event.target.value)"
                                 placeholder="Ketikkan jawaban Anda di sini..."
-                                class="w-full px-4 py-3.5 bg-slate-950 border border-slate-700 focus:border-brand-500 rounded-xl text-white placeholder-slate-500 text-sm sm:text-base focus:outline-none transition shadow-inner font-medium"
+                                class="w-full px-4 py-3.5 bg-white border border-slate-300 focus:border-brand-500 rounded-xl text-slate-900 placeholder-slate-400 text-sm sm:text-base focus:outline-none transition shadow-xs font-medium"
                             >
-                            <span class="text-[11px] text-slate-500 block">Jawaban akan otomatis disimpan ke server saat Anda berhenti mengetik.</span>
+                            <span class="text-[11px] text-slate-400 block">Jawaban akan otomatis disimpan ke server saat Anda berhenti mengetik.</span>
                         </div>
                     </template>
 
@@ -510,19 +514,19 @@
                     <!-- TIPE 5: ESAI / URAIAN (DENGAN AUTO-HEIGHT & PREVIEW)   -->
                     <!-- ----------------------------------------------------- -->
                     <template x-if="currentSoal && (currentSoal.jenis_soal == 5 || currentSoal.jenis == 5)">
-                        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-lg">
-                            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                                <label class="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                        <div class="bg-white border border-slate-200 rounded-2xl p-6 space-y-4 shadow-xs">
+                            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                                <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                                     Lembar Jawaban Esai / Uraian:
                                 </label>
 
                                 <!-- Tab Switcher: Mode Tulis vs Mode Pratinjau -->
-                                <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+                                <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
                                     <button
                                         type="button"
                                         @click="activeEsaiTab = 'write'"
                                         class="px-3 py-1 rounded-lg font-medium transition"
-                                        :class="activeEsaiTab === 'write' ? 'bg-brand-600 text-white font-bold shadow' : 'text-slate-400 hover:text-white'"
+                                        :class="activeEsaiTab === 'write' ? 'bg-brand-600 text-white font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900'"
                                     >
                                         Tulis Jawaban
                                     </button>
@@ -530,7 +534,7 @@
                                         type="button"
                                         @click="activeEsaiTab = 'preview'"
                                         class="px-3 py-1 rounded-lg font-medium transition"
-                                        :class="activeEsaiTab === 'preview' ? 'bg-brand-600 text-white font-bold shadow' : 'text-slate-400 hover:text-white'"
+                                        :class="activeEsaiTab === 'preview' ? 'bg-brand-600 text-white font-bold shadow-xs' : 'text-slate-600 hover:text-slate-900'"
                                     >
                                         Pratinjau Format
                                     </button>
@@ -545,17 +549,17 @@
                                     :value="currentJawaban || ''"
                                     @input="autoGrowTextarea($event.target); updateEsaiDebounced($event.target.value)"
                                     placeholder="Tuliskan uraian jawaban Anda secara lengkap di sini..."
-                                    class="w-full p-4 bg-slate-950 border border-slate-700 focus:border-brand-500 rounded-xl text-white placeholder-slate-500 text-sm sm:text-base focus:outline-none transition leading-relaxed shadow-inner resize-y min-h-[160px]"
+                                    class="w-full p-4 bg-white border border-slate-300 focus:border-brand-500 rounded-xl text-slate-900 placeholder-slate-400 text-sm sm:text-base focus:outline-none transition leading-relaxed shadow-xs resize-y min-h-[160px]"
                                 ></textarea>
                             </div>
 
                             <!-- Tab Pratinjau Format -->
-                            <div x-show="activeEsaiTab === 'preview'" class="p-4 bg-slate-950 rounded-xl border border-slate-800 min-h-[160px] text-slate-200 text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words">
+                            <div x-show="activeEsaiTab === 'preview'" class="p-4 bg-slate-50 rounded-xl border border-slate-200 min-h-[160px] text-slate-800 text-sm sm:text-base leading-relaxed whitespace-pre-wrap break-words">
                                 <template x-if="currentJawaban && currentJawaban.trim().length > 0">
                                     <div x-text="currentJawaban"></div>
                                 </template>
                                 <template x-if="!currentJawaban || currentJawaban.trim().length === 0">
-                                    <span class="text-slate-500 italic">Belum ada teks jawaban yang dituliskan.</span>
+                                    <span class="text-slate-400 italic">Belum ada teks jawaban yang dituliskan.</span>
                                 </template>
                             </div>
 
@@ -574,13 +578,13 @@
             <!-- ============================================================= -->
             <!-- ACTION BAR BAWAH: PREV, RAGU-RAGU, NEXT, FINISH               -->
             <!-- ============================================================= -->
-            <footer x-show="!isLoading && !errorMessage" class="bg-slate-900/95 border-t border-slate-800 px-6 py-3.5 flex items-center justify-between gap-3 shrink-0 z-10">
+            <footer x-show="!isLoading && !errorMessage" class="bg-white border-t border-slate-200 px-6 py-3.5 flex items-center justify-between gap-3 shrink-0 z-10 shadow-xs">
                 <!-- Tombol Sebelumnya -->
                 <button
                     type="button"
                     @click="prevSoal()"
                     :disabled="currentIndex === 0"
-                    class="px-4 sm:px-5 py-2.5 rounded-xl border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white font-semibold text-xs sm:text-sm disabled:opacity-40 disabled:pointer-events-none transition flex items-center gap-2 shadow-sm"
+                    class="px-4 sm:px-5 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 font-semibold text-xs sm:text-sm disabled:opacity-40 disabled:pointer-events-none transition flex items-center gap-2 shadow-xs"
                 >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -592,10 +596,10 @@
                 <button
                     type="button"
                     @click="toggleRagu()"
-                    class="px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition flex items-center gap-2 shadow-sm"
+                    class="px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition flex items-center gap-2 shadow-xs"
                     :class="isRagu
-                        ? 'bg-amber-500 text-slate-950 ring-2 ring-amber-400 shadow-amber-500/30'
-                        : 'bg-slate-800 hover:bg-slate-750 text-amber-400 border border-amber-500/40 hover:border-amber-400'"
+                        ? 'bg-amber-400 text-slate-950 font-bold border border-amber-400 ring-2 ring-amber-300 shadow-amber-400/30'
+                        : 'bg-white hover:bg-amber-50 text-amber-700 border border-amber-300'"
                 >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -608,7 +612,7 @@
                     <button
                         type="button"
                         @click="nextSoal()"
-                        class="px-5 sm:px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs sm:text-sm transition flex items-center gap-2 shadow-lg shadow-brand-600/20"
+                        class="px-5 sm:px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs sm:text-sm transition flex items-center gap-2 shadow-md shadow-brand-600/20"
                     >
                         <span>Berikutnya</span>
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -621,7 +625,7 @@
                     <button
                         type="button"
                         @click="openConfirmFinishModal()"
-                        class="px-5 sm:px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm transition flex items-center gap-2 shadow-lg shadow-emerald-600/30"
+                        class="px-5 sm:px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm transition flex items-center gap-2 shadow-md shadow-emerald-600/30"
                     >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -636,22 +640,22 @@
         <!-- B. SIDEBAR DAFTAR NOMOR SOAL (DESKTOP & DRAWER TABLET)        -->
         <!-- ============================================================= -->
         <aside
-            class="lg:w-80 w-72 bg-slate-900 border-l border-slate-800 flex flex-col shrink-0 z-20 fixed lg:relative inset-y-0 right-0 transform transition-transform duration-300 ease-in-out shadow-2xl"
+            class="lg:w-80 w-72 bg-white border-l border-slate-200 flex flex-col shrink-0 z-20 fixed lg:relative inset-y-0 right-0 transform transition-transform duration-300 ease-in-out shadow-lg"
             :class="showDrawerMobile ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'"
         >
             <!-- Header Sidebar -->
-            <div class="h-16 px-5 border-b border-slate-800 flex items-center justify-between shrink-0">
+            <div class="h-16 px-5 border-b border-slate-200 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-2">
-                    <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                     </svg>
-                    <h3 class="font-bold text-sm text-white">Daftar Nomor Soal</h3>
+                    <h3 class="font-bold text-sm text-slate-900">Daftar Nomor Soal</h3>
                 </div>
 
                 <button
                     type="button"
                     @click="showDrawerMobile = false"
-                    class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white"
+                    class="lg:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-900"
                 >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -660,29 +664,29 @@
             </div>
 
             <!-- Ringkasan Status Jawaban -->
-            <div class="p-4 bg-slate-950/60 border-b border-slate-800 grid grid-cols-3 gap-2 text-center text-xs">
-                <div class="p-2 rounded-lg bg-slate-900 border border-slate-800">
-                    <span class="block text-emerald-400 font-extrabold text-base" x-text="answerStats.answered">0</span>
-                    <span class="text-[10px] text-slate-400">Dijawab</span>
+            <div class="p-4 bg-slate-50 border-b border-slate-200 grid grid-cols-3 gap-2 text-center text-xs">
+                <div class="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
+                    <span class="block text-emerald-600 font-extrabold text-base" x-text="answerStats.answered">0</span>
+                    <span class="text-[10px] text-slate-500">Dijawab</span>
                 </div>
-                <div class="p-2 rounded-lg bg-slate-900 border border-slate-800">
-                    <span class="block text-amber-400 font-extrabold text-base" x-text="answerStats.ragu">0</span>
-                    <span class="text-[10px] text-slate-400">Ragu</span>
+                <div class="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
+                    <span class="block text-amber-600 font-extrabold text-base" x-text="answerStats.ragu">0</span>
+                    <span class="text-[10px] text-slate-500">Ragu</span>
                 </div>
-                <div class="p-2 rounded-lg bg-slate-900 border border-slate-800">
-                    <span class="block text-slate-400 font-extrabold text-base" x-text="answerStats.unanswered">0</span>
-                    <span class="text-[10px] text-slate-400">Kosong</span>
+                <div class="p-2 rounded-lg bg-white border border-slate-200 shadow-xs">
+                    <span class="block text-slate-500 font-extrabold text-base" x-text="answerStats.unanswered">0</span>
+                    <span class="text-[10px] text-slate-500">Kosong</span>
                 </div>
             </div>
 
             <!-- Grid Nomor Soal (Zero-Latency Navigation Pointer Shift) -->
-            <div class="flex-1 overflow-y-auto p-4">
+            <div class="flex-1 overflow-y-auto p-4 bg-slate-50/50">
                 <div class="grid grid-cols-5 gap-2.5">
                     <template x-for="(soalItem, sIdx) in soalList" :key="soalItem.id">
                         <button
                             type="button"
                             @click="goToSoal(sIdx); showDrawerMobile = false;"
-                            class="h-11 rounded-xl font-bold text-xs sm:text-sm flex flex-col items-center justify-center transition-all relative"
+                            class="h-11 rounded-xl font-bold text-xs sm:text-sm flex flex-col items-center justify-center transition-all relative shadow-xs"
                             :class="getSoalButtonClass(sIdx, soalItem.id)"
                         >
                             <span x-text="sIdx + 1">1</span>
@@ -698,31 +702,31 @@
             </div>
 
             <!-- Petunjuk Legend Warna -->
-            <div class="px-4 py-2 border-t border-slate-800 bg-slate-950/40 grid grid-cols-2 gap-1.5 text-[11px] text-slate-400">
+            <div class="px-4 py-2.5 border-t border-slate-200 bg-slate-50 grid grid-cols-2 gap-1.5 text-[11px] text-slate-600">
                 <div class="flex items-center gap-1.5">
-                    <span class="w-3 h-3 rounded-md bg-emerald-600 inline-block"></span>
+                    <span class="w-3 h-3 rounded-md bg-emerald-600 inline-block shadow-xs"></span>
                     <span>Sudah Dijawab</span>
                 </div>
                 <div class="flex items-center gap-1.5">
-                    <span class="w-3 h-3 rounded-md bg-amber-500 inline-block"></span>
+                    <span class="w-3 h-3 rounded-md bg-amber-400 border border-amber-400 inline-block shadow-xs"></span>
                     <span>Ragu-Ragu</span>
                 </div>
                 <div class="flex items-center gap-1.5">
-                    <span class="w-3 h-3 rounded-md bg-slate-800 border border-slate-700 inline-block"></span>
+                    <span class="w-3 h-3 rounded-md bg-white border border-slate-300 inline-block shadow-xs"></span>
                     <span>Belum Dijawab</span>
                 </div>
                 <div class="flex items-center gap-1.5">
-                    <span class="w-3 h-3 rounded-md bg-blue-600/40 border-2 border-blue-400 inline-block"></span>
+                    <span class="w-3 h-3 rounded-md bg-brand-50 border-2 border-brand-500 inline-block shadow-xs"></span>
                     <span>Soal Aktif</span>
                 </div>
             </div>
 
             <!-- Tombol Selesai Ujian di Sidebar Bawah -->
-            <div class="p-4 border-t border-slate-800 bg-slate-900 shrink-0">
+            <div class="p-4 border-t border-slate-200 bg-white shrink-0">
                 <button
                     type="button"
                     @click="openConfirmFinishModal()"
-                    class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20"
+                    class="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20"
                 >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -736,7 +740,7 @@
         <div
             x-show="showDrawerMobile"
             @click="showDrawerMobile = false"
-            class="lg:hidden fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-10 transition-opacity"
+            class="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-xs z-10 transition-opacity"
         ></div>
     </div>
 
@@ -751,37 +755,33 @@
         x-transition:leave="transition ease-in duration-200"
         x-transition:leave-start="opacity-100 scale-100"
         x-transition:leave-end="opacity-0 scale-95"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-red-950/95 backdrop-blur-md"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
         style="display: none;"
     >
-        <div class="bg-slate-900 border-2 border-rose-600 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl text-center relative overflow-hidden">
-            <!-- Red Glow Background -->
-            <div class="absolute -top-24 -left-24 w-48 h-48 bg-rose-600/30 rounded-full blur-3xl pointer-events-none"></div>
-            <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-rose-600/30 rounded-full blur-3xl pointer-events-none"></div>
-
+        <div class="bg-white border-2 border-rose-500 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl text-center relative overflow-hidden">
             <!-- Ikon Peringatan Keras -->
-            <div class="w-20 h-20 rounded-2xl bg-rose-500/20 text-rose-500 border border-rose-500/30 flex items-center justify-center mx-auto mb-5 animate-bounce shadow-lg shadow-rose-900/40">
+            <div class="w-20 h-20 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center mx-auto mb-5 shadow-sm">
                 <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
             </div>
 
-            <h3 class="text-2xl font-black text-white mb-2 tracking-wide uppercase">
+            <h3 class="text-2xl font-black text-slate-900 mb-2 tracking-wide uppercase">
                 Peringatan Pelanggaran!
             </h3>
             
-            <p class="text-sm text-rose-300 font-medium mb-4" x-text="violationModalMsg">
+            <p class="text-sm text-rose-600 font-semibold mb-4" x-text="violationModalMsg">
                 Terdeteksi aktivitas mencurigakan / keluar dari jendela ujian!
             </p>
 
             <!-- Box Counter Pelanggaran: Peringatan ke-X dari 3! -->
-            <div class="bg-slate-950/80 border border-rose-500/40 rounded-2xl p-4 mb-6 shadow-inner">
-                <span class="text-xs text-slate-400 block mb-1">Status Pelanggaran Sisi Klien:</span>
-                <div class="text-xl sm:text-2xl font-black text-rose-500">
+            <div class="bg-rose-50 border border-rose-200 rounded-2xl p-4 mb-6 shadow-xs">
+                <span class="text-xs text-slate-600 block mb-1">Status Pelanggaran Sisi Klien:</span>
+                <div class="text-xl sm:text-2xl font-black text-rose-600">
                     Peringatan ke-<span x-text="violationCount">1</span> dari <span x-text="maxViolations">3</span>!
                 </div>
-                <p class="text-xs text-amber-300 font-medium mt-2">
-                    Sisa toleransi: <span class="font-bold underline" x-text="Math.max(0, maxViolations - violationCount)">2</span> kali lagi sebelum lembar ujian Anda otomatis dibatalkan dan akun dikunci!
+                <p class="text-xs text-slate-700 font-medium mt-2">
+                    Sisa toleransi: <span class="font-bold underline text-rose-700" x-text="Math.max(0, maxViolations - violationCount)">2</span> kali lagi sebelum lembar ujian Anda otomatis dibatalkan dan akun dikunci!
                 </p>
             </div>
 
@@ -789,7 +789,7 @@
             <button
                 type="button"
                 @click="dismissViolationModal()"
-                class="w-full py-3.5 px-6 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm tracking-wide shadow-lg shadow-rose-600/40 transition"
+                class="w-full py-3.5 px-6 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm tracking-wide shadow-md shadow-rose-600/30 transition"
             >
                 Saya Mengerti & Kembali ke Ujian
             </button>
@@ -801,21 +801,21 @@
     <!-- ================================================================= -->
     <div
         x-show="isTerminated"
-        class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-lg"
+        class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/70 backdrop-blur-md"
         style="display: none;"
     >
-        <div class="max-w-md w-full bg-slate-900 border-2 border-red-700 rounded-3xl p-8 text-center shadow-2xl">
-            <div class="w-20 h-20 bg-red-600/20 text-red-500 rounded-full flex items-center justify-center mx-auto mb-5 border border-red-500">
+        <div class="max-w-md w-full bg-white border-2 border-red-600 rounded-3xl p-8 text-center shadow-2xl">
+            <div class="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-5 border border-red-200">
                 <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                 </svg>
             </div>
-            <h2 class="text-2xl font-black text-white mb-2 uppercase tracking-wide">Ujian Anda Dihentikan karena Pelanggaran!</h2>
-            <p class="text-sm text-red-300 font-medium mb-6 leading-relaxed" x-text="terminationMessage">
+            <h2 class="text-2xl font-black text-slate-900 mb-2 uppercase tracking-wide">Ujian Anda Dihentikan karena Pelanggaran!</h2>
+            <p class="text-sm text-red-600 font-medium mb-6 leading-relaxed" x-text="terminationMessage">
                 Sesi ujian Anda telah dibatalkan otomatis oleh sistem karena akumulasi pelanggaran keluar dari jendela ujian.
             </p>
-            <div class="p-4 bg-slate-950 rounded-xl border border-slate-800 text-xs text-slate-400 mb-6">
-                Catatan pelanggaran dan riwayat waktu telah dikirim ke server proktor. Mengalihkan ke halaman keluar dalam <span class="font-bold text-amber-400" x-text="terminationCountdown">5</span> detik...
+            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 mb-6">
+                Catatan pelanggaran dan riwayat waktu telah dikirim ke server proktor. Mengalihkan ke halaman keluar dalam <span class="font-bold text-amber-600" x-text="terminationCountdown">5</span> detik...
             </div>
             <a
                 href="{{ route('login') }}"
@@ -832,39 +832,39 @@
     <div
         x-show="showConfirmFinishModal"
         x-transition
-        class="fixed inset-0 z-40 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm"
+        class="fixed inset-0 z-40 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
         style="display: none;"
     >
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl text-center">
-            <div class="w-16 h-16 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center mx-auto mb-4">
+        <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl text-center">
+            <div class="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto mb-4">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             </div>
 
-            <h3 class="text-xl font-bold text-white mb-2">Konfirmasi Selesai Ujian</h3>
-            <p class="text-xs text-slate-400 mb-5">Pastikan Anda telah memeriksa kembali seluruh jawaban sebelum mengirim lembar ujian ke server.</p>
+            <h3 class="text-xl font-bold text-slate-900 mb-2">Konfirmasi Selesai Ujian</h3>
+            <p class="text-xs text-slate-500 mb-5">Pastikan Anda telah memeriksa kembali seluruh jawaban sebelum mengirim lembar ujian ke server.</p>
 
             <!-- Ringkasan Statistik Soal -->
             <div class="grid grid-cols-3 gap-2.5 mb-5 text-center">
-                <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
-                    <span class="text-xl font-extrabold text-emerald-400 block" x-text="answerStats.answered">0</span>
-                    <span class="text-[11px] text-slate-400 font-medium">Sudah Dijawab</span>
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <span class="text-xl font-extrabold text-emerald-600 block" x-text="answerStats.answered">0</span>
+                    <span class="text-[11px] text-slate-600 font-medium">Sudah Dijawab</span>
                 </div>
-                <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
-                    <span class="text-xl font-extrabold text-amber-400 block" x-text="answerStats.ragu">0</span>
-                    <span class="text-[11px] text-slate-400 font-medium">Masih Ragu</span>
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <span class="text-xl font-extrabold text-amber-600 block" x-text="answerStats.ragu">0</span>
+                    <span class="text-[11px] text-slate-600 font-medium">Masih Ragu</span>
                 </div>
-                <div class="p-3 bg-slate-950 rounded-xl border border-slate-800">
-                    <span class="text-xl font-extrabold text-slate-400 block" x-text="answerStats.unanswered">0</span>
-                    <span class="text-[11px] text-slate-400 font-medium">Belum Dijawab</span>
+                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <span class="text-xl font-extrabold text-slate-500 block" x-text="answerStats.unanswered">0</span>
+                    <span class="text-[11px] text-slate-600 font-medium">Belum Dijawab</span>
                 </div>
             </div>
 
             <!-- Warning jika masih ada ragu atau belum dijawab -->
             <template x-if="answerStats.ragu > 0 || answerStats.unanswered > 0">
-                <div class="p-3.5 mb-6 rounded-xl bg-amber-950/60 border border-amber-500/40 text-amber-300 text-xs text-left leading-relaxed flex items-start gap-2.5">
-                    <svg class="w-5 h-5 shrink-0 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="p-3.5 mb-6 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs text-left leading-relaxed flex items-start gap-2.5">
+                    <svg class="w-5 h-5 shrink-0 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                     <span>
@@ -879,7 +879,7 @@
                     type="button"
                     @click="showConfirmFinishModal = false"
                     :disabled="isSubmitting"
-                    class="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs sm:text-sm transition"
+                    class="flex-1 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs sm:text-sm transition"
                 >
                     Periksa Kembali
                 </button>
@@ -887,7 +887,7 @@
                     type="button"
                     @click="submitFinalExam(false)"
                     :disabled="isSubmitting"
-                    class="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2"
+                    class="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/30 transition flex items-center justify-center gap-2"
                 >
                     <svg x-show="isSubmitting" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -904,28 +904,28 @@
     <!-- ================================================================= -->
     <div
         x-show="showTokenModal"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
         style="display: none;"
     >
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center">
-            <div class="w-16 h-16 rounded-2xl bg-brand-500/20 text-brand-400 border border-brand-500/30 flex items-center justify-center mx-auto mb-4 text-2xl">
+        <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center">
+            <div class="w-16 h-16 rounded-2xl bg-brand-50 text-brand-600 border border-brand-200 flex items-center justify-center mx-auto mb-4 text-2xl">
                 🔑
             </div>
-            <h3 class="text-xl font-bold text-white mb-2">Masukkan Token Ujian</h3>
-            <p class="text-xs text-slate-400 mb-6">Ujian ini memerlukan token autentikasi aktif. Silakan mintalah token 6 digit kepada pengawas/proktor ruangan Anda.</p>
+            <h3 class="text-xl font-bold text-slate-900 mb-2">Masukkan Token Ujian</h3>
+            <p class="text-xs text-slate-500 mb-6">Ujian ini memerlukan token autentikasi aktif. Silakan mintalah token 6 digit kepada pengawas/proktor ruangan Anda.</p>
             
             <input
                 type="text"
                 x-model="tokenInput"
                 maxlength="8"
                 placeholder="TOKEN"
-                class="w-full text-center text-2xl font-mono font-black uppercase tracking-[0.5em] py-3.5 bg-slate-950 border border-brand-500/50 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-brand-500 mb-6 shadow-inner"
+                class="w-full text-center text-2xl font-mono font-black uppercase tracking-[0.5em] py-3.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500 mb-6 shadow-xs"
             >
 
             <button
                 type="button"
                 @click="submitTokenAndStart()"
-                class="w-full py-3.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm tracking-wide shadow-lg shadow-brand-600/30 transition"
+                class="w-full py-3.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm tracking-wide shadow-md shadow-brand-600/30 transition"
             >
                 Mulai Kerjakan Ujian
             </button>
@@ -937,31 +937,31 @@
     <!-- ================================================================= -->
     <div
         x-show="examFinished"
-        class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-lg"
+        class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm"
         style="display: none;"
     >
-        <div class="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 text-center shadow-2xl">
-            <div class="w-20 h-20 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-5 border border-emerald-500/30 shadow-lg shadow-emerald-500/20">
+        <div class="max-w-md w-full bg-white border border-slate-200 rounded-3xl p-8 text-center shadow-2xl">
+            <div class="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-5 border border-emerald-200 shadow-sm">
                 <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
                 </svg>
             </div>
 
-            <h2 class="text-2xl font-black text-white mb-2">Ujian Berhasil Dikumpulkan!</h2>
-            <p class="text-sm text-slate-400 mb-6">
+            <h2 class="text-2xl font-black text-slate-900 mb-2">Ujian Berhasil Dikumpulkan!</h2>
+            <p class="text-sm text-slate-500 mb-6">
                 Seluruh lembar jawaban Anda telah tersimpan secara aman di database server.
             </p>
 
             <template x-if="finishResult && finishResult.tampil_hasil">
-                <div class="p-4 bg-slate-950 rounded-2xl border border-slate-800 mb-6 shadow-inner">
-                    <span class="text-xs text-slate-400 block mb-1">Skor Akhir Anda:</span>
-                    <span class="text-4xl font-black text-brand-400" x-text="finishResult.total_nilai || '0'">0</span>
+                <div class="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 mb-6 shadow-xs">
+                    <span class="text-xs text-emerald-800 block mb-1">Skor Akhir Anda:</span>
+                    <span class="text-4xl font-black text-emerald-700" x-text="finishResult.total_nilai || '0'">0</span>
                 </div>
             </template>
 
             <a
                 href="{{ route('exam.index') }}"
-                class="w-full block py-3.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm tracking-wide shadow-lg shadow-brand-600/30 transition"
+                class="w-full block py-3.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-sm tracking-wide shadow-md shadow-brand-600/30 transition"
             >
                 Kembali ke Beranda Ujian
             </a>
@@ -984,23 +984,6 @@
     <!-- 9. CORE ALPINE.JS EXAM ENGINE JAVASCRIPT (ZERO-LATENCY + ANTI-CHEAT) -->
     <!-- ================================================================= -->
     <script>
-        function renderMathInPage() {
-            if (window.renderMathInElement) {
-                const el = document.getElementById('exam-content-area') || document.body;
-                window.renderMathInElement(el, {
-                    delimiters: [
-                        { left: '$$', right: '$$', display: true },
-                        { left: '$', right: '$', display: false },
-                        { left: '\\(', right: '\\)', display: false },
-                        { left: '\\[', right: '\\]', display: true }
-                    ],
-                    ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code', 'option'],
-                    throwOnError: false
-                });
-            }
-        }
-        window.renderMathInPage = renderMathInPage;
-
         function cbtExam(config) {
             return {
                 jadwalId: config.jadwalId,
@@ -1076,11 +1059,6 @@
 
                     // Pasang pemantau konektivitas jaringan (Online / Offline)
                     this.setupNetworkStatusListener();
-
-                    // Watch perpindahan butir soal untuk merender formula LaTeX KaTeX seketika (Zero-Latency)
-                    this.$watch('currentIndex', () => {
-                        this.renderMath();
-                    });
                 },
 
                 // Alias untuk kompatibilitas
@@ -1164,7 +1142,6 @@
 
                         this.showTokenModal = false;
                         this.isLoading = false;
-                        this.renderMath();
 
                     } catch (err) {
                         console.error('Fetch Exam Error:', err);
@@ -1175,7 +1152,16 @@
 
                 submitTokenAndStart() {
                     if (!this.tokenInput || this.tokenInput.trim().length < 3) {
-                        alert('Silakan masukkan token ujian dengan benar.');
+                        if (window.Swal) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Token Ujian Kosong',
+                                text: 'Silakan masukkan token ujian dengan benar.',
+                                confirmButtonColor: '#4f46e5'
+                            });
+                        } else {
+                            alert('Silakan masukkan token ujian dengan benar.');
+                        }
                         return;
                     }
                     this.token = this.tokenInput.trim().toUpperCase();
@@ -1235,29 +1221,19 @@
                 goToSoal(index) {
                     if (index >= 0 && index < this.soalList.length) {
                         this.currentIndex = index;
-                        this.renderMath();
                     }
                 },
 
                 nextSoal() {
                     if (this.currentIndex < this.soalList.length - 1) {
                         this.currentIndex++;
-                        this.renderMath();
                     }
                 },
 
                 prevSoal() {
                     if (this.currentIndex > 0) {
                         this.currentIndex--;
-                        this.renderMath();
                     }
-                },
-
-                // Perender Formula Matematika & Eksakta KaTeX (100% Offline)
-                renderMath() {
-                    this.$nextTick(() => {
-                        renderMathInPage();
-                    });
                 },
 
                 setFontSize(size) {
@@ -1578,16 +1554,16 @@
                     let base = 'transition shadow-sm ';
 
                     if (isActive) {
-                        base += 'ring-2 ring-blue-400 ring-offset-2 ring-offset-slate-950 scale-105 z-10 border-2 border-blue-400 text-blue-200 ';
+                        base += 'ring-2 ring-brand-500 ring-offset-2 ring-offset-white scale-105 z-10 border-2 border-brand-500 text-brand-700 ';
                     }
 
                     if (isR) {
-                        return base + 'bg-amber-500 text-slate-950 font-bold shadow-amber-500/20';
+                        return base + 'bg-amber-400 text-slate-950 font-bold border-amber-400 shadow-amber-400/20';
                     }
                     if (hasAns) {
                         return base + 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/20';
                     }
-                    return base + 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700';
+                    return base + 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300';
                 },
 
                 getOpsiLabelPreview(soalId) {
@@ -1676,7 +1652,17 @@
                 },
 
                 forceFinishTimeOut() {
-                    alert('Waktu ujian telah habis! Sistem secara otomatis mengumpulkan lembar jawaban Anda.');
+                    if (window.Swal) {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Waktu Ujian Habis',
+                            text: 'Waktu ujian telah habis! Sistem secara otomatis mengumpulkan lembar jawaban Anda.',
+                            timer: 3500,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        alert('Waktu ujian telah habis! Sistem secara otomatis mengumpulkan lembar jawaban Anda.');
+                    }
                     this.submitFinalExam(true);
                 },
 
@@ -1860,11 +1846,29 @@
                             // Bersihkan backup offline saat ujian selesai
                             try { localStorage.removeItem(this.backupStorageKey); } catch (e) {}
                         } else {
-                            alert(data.message || 'Gagal mengirimkan jawaban. Silakan coba kembali.');
+                            if (window.Swal) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal Mengirim Jawaban',
+                                    text: data.message || 'Gagal mengirimkan jawaban. Silakan coba kembali.',
+                                    confirmButtonColor: '#4f46e5'
+                                });
+                            } else {
+                                alert(data.message || 'Gagal mengirimkan jawaban. Silakan coba kembali.');
+                            }
                         }
                     } catch (err) {
                         this.isSubmitting = false;
-                        alert('Koneksi terganggu saat mengirim jawaban. Jawaban Anda tetap tersimpan di memori perangkat. Silakan coba tekan tombol Selesai kembali.');
+                        if (window.Swal) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Koneksi Terganggu',
+                                text: 'Koneksi terganggu saat mengirim jawaban. Jawaban Anda tetap aman di memori perangkat. Silakan coba tekan tombol Selesai kembali.',
+                                confirmButtonColor: '#4f46e5'
+                            });
+                        } else {
+                            alert('Koneksi terganggu saat mengirim jawaban. Jawaban Anda tetap tersimpan di memori perangkat. Silakan coba tekan tombol Selesai kembali.');
+                        }
                     }
                 }
             };

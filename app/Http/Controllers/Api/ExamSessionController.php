@@ -194,47 +194,6 @@ class ExamSessionController extends Controller
                     ], 403);
                 }
             }
-
-            // 3b. Validasi Kesesuaian Agama
-            $bankAgama = trim((string) ($bank->soal_agama ?? ''));
-            if (empty($bankAgama) || $bankAgama === '-' || $bankAgama === '0') {
-                $bankAgama = trim((string) ($bank->mapel?->agama ?? ''));
-            }
-            if (!empty($bankAgama) && $bankAgama !== '-' && $bankAgama !== '0') {
-                $siswaAgama = trim((string) ($siswa->agama ?? ''));
-                if (empty($siswaAgama) || strcasecmp($siswaAgama, $bankAgama) !== 0) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => "Mata pelajaran ujian ini dikhususkan untuk pemeluk agama {$bankAgama}.",
-                    ], 403);
-                }
-            }
-
-            // 3c. Validasi Mapel Pilihan (Kurikulum Merdeka Fase F)
-            $isPilihan = (bool) ($bank->mapel?->is_pilihan ?? false);
-            if ($isPilihan) {
-                $activeTaId = \App\Models\RefTahunAjaran::active()->value('id');
-                $mapelId = (int) ($bank->mapel_id ?? $bank->bank_mapel_id ?? $bank->mapel?->id_mapel ?? $bank->mapel?->id ?? 0);
-                $enrolled = \App\Models\SiswaMapelPilihan::where('siswa_id', $siswaId)
-                    ->when($activeTaId, fn($q) => $q->where('tahun_ajaran_id', $activeTaId))
-                    ->where('mapel_id', $mapelId)
-                    ->exists();
-
-                if (!$enrolled && !empty($siswa->mapel_pilihan)) {
-                    $jsonCodes = is_array($siswa->mapel_pilihan) ? $siswa->mapel_pilihan : json_decode($siswa->mapel_pilihan, true);
-                    $mKode = $bank->mapel?->kode ?? $bank->mapel?->kode_mapel;
-                    if (is_array($jsonCodes) && in_array($mKode, $jsonCodes)) {
-                        $enrolled = true;
-                    }
-                }
-
-                if (!$enrolled) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Anda tidak terdaftar sebagai peserta pada mata pelajaran pilihan ini.',
-                    ], 403);
-                }
-            }
         }
 
         // 4. Verifikasi Status Pemutusan Ujian karena Pelanggaran Anti-Cheat
