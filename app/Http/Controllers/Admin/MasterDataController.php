@@ -96,7 +96,8 @@ class MasterDataController extends Controller
     public function indexJurusan(): View
     {
         $jurusanList = MasterJurusan::orderBy('id_jurusan', 'asc')->get();
-        return view('admin.master.jurusan', compact('jurusanList'));
+        $mapelList = MasterMapel::orderBy('nama_mapel', 'asc')->get();
+        return view('admin.master.jurusan', compact('jurusanList', 'mapelList'));
     }
 
     public function storeJurusan(Request $request): RedirectResponse
@@ -106,8 +107,56 @@ class MasterDataController extends Controller
             'kode_jurusan' => 'required|string|max:20',
         ]);
 
-        MasterJurusan::create($request->only('nama_jurusan', 'kode_jurusan'));
+        $mapelPeminatan = '';
+        if ($request->has('mapel') && is_array($request->mapel)) {
+            $mapelPeminatan = implode(',', array_filter($request->mapel));
+        }
+
+        MasterJurusan::create([
+            'nama_jurusan'    => $request->nama_jurusan,
+            'kode_jurusan'    => strtoupper(trim($request->kode_jurusan)),
+            'mapel_peminatan' => $mapelPeminatan,
+            'status'          => 1,
+            'deletable'       => 1,
+        ]);
+
         return back()->with('success', 'Jurusan berhasil ditambahkan.');
+    }
+
+    public function updateJurusan(Request $request, $id): RedirectResponse
+    {
+        $request->validate([
+            'nama_jurusan' => 'required|string|max:100',
+            'kode_jurusan' => 'required|string|max:20',
+        ]);
+
+        $jurusan = MasterJurusan::findOrFail($id);
+
+        $mapelPeminatan = $jurusan->mapel_peminatan;
+        if ($request->has('mapel')) {
+            $mapelPeminatan = is_array($request->mapel) ? implode(',', array_filter($request->mapel)) : $request->mapel;
+        }
+
+        $jurusan->update([
+            'nama_jurusan'    => $request->nama_jurusan,
+            'kode_jurusan'    => strtoupper(trim($request->kode_jurusan)),
+            'mapel_peminatan' => $mapelPeminatan ?? '',
+        ]);
+
+        return back()->with('success', 'Data Jurusan berhasil diperbarui.');
+    }
+
+    public function destroyJurusan($id): RedirectResponse
+    {
+        $jurusan = MasterJurusan::findOrFail($id);
+
+        // Cek relasi kelas
+        if ($jurusan->kelas()->count() > 0) {
+            return back()->with('error', 'Jurusan gagal dihapus karena sedang digunakan oleh rombel kelas.');
+        }
+
+        $jurusan->delete();
+        return back()->with('success', 'Jurusan berhasil dihapus.');
     }
 
     // =========================================================================

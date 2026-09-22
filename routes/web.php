@@ -75,6 +75,10 @@ Route::middleware(['auth'])->group(function () {
 
             Route::get('/jurusan', [MasterDataController::class, 'indexJurusan'])->name('jurusan');
             Route::post('/jurusan', [MasterDataController::class, 'storeJurusan'])->name('jurusan.store');
+            Route::put('/jurusan/{id}', [MasterDataController::class, 'updateJurusan'])->name('jurusan.update');
+            Route::post('/jurusan/update/{id}', [MasterDataController::class, 'updateJurusan'])->name('jurusan.update.post');
+            Route::delete('/jurusan/{id}', [MasterDataController::class, 'destroyJurusan'])->name('jurusan.destroy');
+            Route::post('/jurusan/delete/{id}', [MasterDataController::class, 'destroyJurusan'])->name('jurusan.delete.post');
 
             Route::get('/kelas', [MasterDataController::class, 'indexKelas'])->name('kelas');
             Route::post('/kelas', [MasterDataController::class, 'storeKelas'])->name('kelas.store');
