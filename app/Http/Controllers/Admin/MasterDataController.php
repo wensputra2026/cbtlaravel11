@@ -7,6 +7,7 @@ use App\Models\KelasSiswa;
 use App\Models\MasterGuru;
 use App\Models\MasterJurusan;
 use App\Models\MasterKelas;
+use App\Models\MasterKelompokMapel;
 use App\Models\MasterMapel;
 use App\Models\MasterSiswa;
 use App\Models\MasterSmt;
@@ -183,12 +184,17 @@ class MasterDataController extends Controller
     }
 
     // =========================================================================
-    // 4. MATA PELAJARAN
+    // 4. MATA PELAJARAN (Authentic Garuda CBT Datamapel Parity)
     // =========================================================================
     public function indexMapel(): View
     {
-        $mapelList = MasterMapel::orderBy('nama_mapel', 'asc')->get();
-        return view('admin.master.mapel', compact('mapelList'));
+        $mapelList = MasterMapel::orderBy('urutan_tampil', 'asc')->orderBy('nama_mapel', 'asc')->get();
+        $kelompokUtama = MasterKelompokMapel::where('id_parent', 0)->orderBy('kode_kel_mapel', 'asc')->get();
+        $subKelompok = MasterKelompokMapel::where('id_parent', '!=', 0)->with('parent')->orderBy('kode_kel_mapel', 'asc')->get();
+        $allKelompok = MasterKelompokMapel::orderBy('kode_kel_mapel', 'asc')->get();
+        $kategoriList = ['WAJIB', 'PEMINATAN AKADEMIK', 'LINTAS MINAT', 'KEJURUAN', 'MUATAN LOKAL'];
+
+        return view('admin.master.mapel', compact('mapelList', 'kelompokUtama', 'subKelompok', 'allKelompok', 'kategoriList'));
     }
 
     public function storeMapel(Request $request): RedirectResponse
@@ -198,8 +204,98 @@ class MasterDataController extends Controller
             'kode'       => 'required|string|max:20',
         ]);
 
-        MasterMapel::create($request->only('nama_mapel', 'kode', 'urutan_tampil'));
+        $data = [
+            'nama_mapel'   => $request->input('nama_mapel'),
+            'kode'         => strtoupper(trim($request->input('kode'))),
+            'kelompok'     => $request->input('kelompok') ?? '',
+            'urutan_tampil'=> $request->input('urutan_tampil') ?? 0,
+            'mapel_agama'  => $request->input('mapel_agama', 0),
+            'status'       => 1,
+            'deletable'    => 1,
+        ];
+
+        MasterMapel::create($data);
         return back()->with('success', 'Mata Pelajaran berhasil ditambahkan.');
+    }
+
+    public function updateMapel(Request $request, int $id): RedirectResponse
+    {
+        $request->validate([
+            'nama_mapel' => 'required|string|max:100',
+            'kode'       => 'required|string|max:20',
+        ]);
+
+        $mapel = MasterMapel::findOrFail($id);
+        $mapel->update([
+            'nama_mapel'   => $request->input('nama_mapel'),
+            'kode'         => strtoupper(trim($request->input('kode'))),
+            'kelompok'     => $request->input('kelompok') ?? $mapel->kelompok,
+            'urutan_tampil'=> $request->input('urutan_tampil', $mapel->urutan_tampil),
+            'mapel_agama'  => $request->input('mapel_agama', $mapel->mapel_agama),
+        ]);
+
+        return back()->with('success', 'Mata Pelajaran berhasil diperbarui.');
+    }
+
+    public function destroyMapel(int $id): RedirectResponse
+    {
+        $mapel = MasterMapel::findOrFail($id);
+        if ($mapel->deletable == 0) {
+            return back()->with('error', 'Mata pelajaran sistem bawaan tidak dapat dihapus.');
+        }
+
+        $mapel->delete();
+        return back()->with('success', 'Mata Pelajaran berhasil dihapus.');
+    }
+
+    public function toggleStatusMapel(int $id): JsonResponse|RedirectResponse
+    {
+        $mapel = MasterMapel::findOrFail($id);
+        $mapel->status = $mapel->status == 1 ? 0 : 1;
+        $mapel->save();
+
+        if (request()->wantsJson()) {
+            return response()->json(['success' => true, 'status' => $mapel->status]);
+        }
+
+        return back()->with('success', 'Status mata pelajaran berhasil diperbarui.');
+    }
+
+    public function storeKelompokMapel(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'kode_kel_mapel' => 'required|string|max:20',
+            'nama_kel_mapel' => 'required|string|max:100',
+        ]);
+
+        $id = $request->input('id_kel_mapel');
+        $data = [
+            'kode_kel_mapel' => strtoupper(trim($request->input('kode_kel_mapel'))),
+            'nama_kel_mapel' => trim($request->input('nama_kel_mapel')),
+            'kategori'       => $request->input('kategori') ?? 'WAJIB',
+            'id_parent'      => $request->input('id_parent', 0),
+        ];
+
+        if ($id) {
+            MasterKelompokMapel::where('id_kel_mapel', $id)->update($data);
+            $msg = 'Kelompok Mata Pelajaran berhasil diperbarui.';
+        } else {
+            MasterKelompokMapel::create($data);
+            $msg = 'Kelompok Mata Pelajaran baru berhasil ditambahkan.';
+        }
+
+        return back()->with('success', $msg);
+    }
+
+    public function destroyKelompokMapel(int $id): RedirectResponse
+    {
+        $kel = MasterKelompokMapel::findOrFail($id);
+        
+        // Hapus juga sub kelompoknya jika kelompok utama
+        MasterKelompokMapel::where('id_parent', $id)->delete();
+        $kel->delete();
+
+        return back()->with('success', 'Kelompok Mata Pelajaran berhasil dihapus.');
     }
 
     // =========================================================================

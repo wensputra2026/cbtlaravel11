@@ -34,13 +34,13 @@
             </div>
 
             <div class="flex flex-wrap items-center gap-3 pt-2">
-                <a href="{{ route('admin.cbt.bank_soal.template', 'csv') }}" class="flex-1 sm:flex-none px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs">
+                <a href="{{ route('admin.cbt.bank_soal.template', 'excel') }}" class="flex-1 sm:flex-none px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    <span>Unduh Format Excel (CSV)</span>
+                    <span>Unduh Format Excel (.xlsx)</span>
                 </a>
                 <a href="{{ route('admin.cbt.bank_soal.template', 'word') }}" class="flex-1 sm:flex-none px-4 py-2.5 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    <span>Panduan Format Word (.doc)</span>
+                    <span>Unduh Format Word (.docx)</span>
                 </a>
             </div>
         </div>
@@ -55,9 +55,9 @@
             <form action="{{ route('admin.cbt.bank_soal.import_process', $bank->id_bank) }}" method="POST" enctype="multipart/form-data" class="space-y-4">
                 @csrf
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Pilih File Soal (.CSV):</label>
-                    <input type="file" name="file_soal" accept=".csv,.txt" required class="block w-full text-xs text-slate-700 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer bg-slate-50 p-2 rounded-xl border border-slate-200 transition">
-                    <p class="text-[11px] text-slate-500 mt-1.5">Ukuran berkas maksimal 5 MB. Format pemisah koma atau titik koma (.csv).</p>
+                    <label class="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Pilih File Soal (Excel / Word):</label>
+                    <input type="file" name="file_soal" accept=".xlsx,.xls,.docx" required class="block w-full text-xs text-slate-700 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer bg-slate-50 p-2 rounded-xl border border-slate-200 transition">
+                    <p class="text-[11px] text-slate-500 mt-1.5">Ukuran berkas maksimal 10 MB. Mendukung format Excel (.xlsx, .xls) atau Word (.docx).</p>
                 </div>
 
                 <div class="pt-2">
@@ -74,33 +74,33 @@
     <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-4">
         <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
             <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <span>Keterangan Kolom Jenis Soal Pada File CSV:</span>
+            <span>Keterangan Kolom Jenis Soal Pada File Template:</span>
         </h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs text-slate-700">
             <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                <span class="inline-block px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-black text-xs mb-1.5">Kode 1</span>
+                <span class="inline-block px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-black text-xs mb-1.5">Jenis 1</span>
                 <p class="font-bold text-slate-900">Pilihan Ganda Biasa</p>
-                <p class="text-slate-500 text-[11px] mt-0.5">Opsi jawaban A - E. Kolom kunci diisi satu huruf kunci (A, B, C, D, atau E).</p>
+                <p class="text-slate-500 text-[11px] mt-0.5">Opsi jawaban A - E. Berikan tanda v pada baris opsi yang benar pada kolom KUNCI.</p>
             </div>
             <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                <span class="inline-block px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 font-black text-xs mb-1.5">Kode 2</span>
+                <span class="inline-block px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 font-black text-xs mb-1.5">Jenis 2</span>
                 <p class="font-bold text-slate-900">Pilihan Ganda Kompleks</p>
-                <p class="text-slate-500 text-[11px] mt-0.5">Checklist multi jawaban benar. Kolom kunci dipisah koma (contoh: A,C,D).</p>
+                <p class="text-slate-500 text-[11px] mt-0.5">Multi jawaban benar. Berikan tanda v pada opsi-opsi yang benar pada kolom KUNCI.</p>
             </div>
             <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                <span class="inline-block px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-black text-xs mb-1.5">Kode 3</span>
+                <span class="inline-block px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-black text-xs mb-1.5">Jenis 3</span>
                 <p class="font-bold text-slate-900">Menjodohkan</p>
-                <p class="text-slate-500 text-[11px] mt-0.5">Premis dan respons. Format pasangan item pada template CSV.</p>
+                <p class="text-slate-500 text-[11px] mt-0.5">Premis dan respons. Tentukan kode baris dan kode kolom yang cocok pada kolom KUNCI.</p>
             </div>
             <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
-                <span class="inline-block px-2 py-0.5 rounded-md bg-teal-100 text-teal-800 font-black text-xs mb-1.5">Kode 4</span>
+                <span class="inline-block px-2 py-0.5 rounded-md bg-teal-100 text-teal-800 font-black text-xs mb-1.5">Jenis 4</span>
                 <p class="font-bold text-slate-900">Isian Singkat</p>
                 <p class="text-slate-500 text-[11px] mt-0.5">Kunci berupa kata atau frasa teks eksak yang dinilai otomatis oleh sistem.</p>
             </div>
             <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 sm:col-span-2 lg:col-span-2">
-                <span class="inline-block px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 font-black text-xs mb-1.5">Kode 5</span>
+                <span class="inline-block px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 font-black text-xs mb-1.5">Jenis 5</span>
                 <p class="font-bold text-slate-900">Esai / Uraian Bebas</p>
-                <p class="text-slate-500 text-[11px] mt-0.5">Siswa menjawab dalam paragraf uraian. Guru dapat memberikan nilai manual pada menu Koreksi Soal Esai.</p>
+                <p class="text-slate-500 text-[11px] mt-0.5">Siswa menjawab dalam paragraf uraian. Guru memberikan skor manual pada menu Koreksi Ujian.</p>
             </div>
         </div>
     </div>

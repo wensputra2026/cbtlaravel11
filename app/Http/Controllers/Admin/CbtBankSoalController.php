@@ -916,50 +916,79 @@ class CbtBankSoalController extends Controller
     }
 
     /**
-     * Unduh template file import soal (CSV atau Word).
+     * Unduh template file import soal (Excel .xlsx atau Word .docx resmi Garuda CBT).
      */
-    public function downloadTemplate(string $format = 'csv'): Response
+    public function downloadTemplate(string $format = 'word'): \Symfony\Component\HttpFoundation\BinaryFileResponse
     {
-        if ($format === 'csv') {
-            $filename = 'template_import_soal_cbt.csv';
-            $content = "nomor_soal,jenis_soal,pertanyaan,opsi_a,opsi_b,opsi_c,opsi_d,opsi_e,kunci_jawaban,bobot\n";
-            $content .= "1,1,\"Ibukota Negara Indonesia yang baru adalah?\",\"Jakarta\",\"Nusantara (IKN)\",\"Surabaya\",\"Bandung\",\"Medan\",\"B\",1.00\n";
-            $content .= "2,1,\"Berapakah hasil dari 15 x 6?\",\"80\",\"85\",\"90\",\"95\",\"100\",\"C\",1.00\n";
-            $content .= "3,4,\"Lembaga negara pembuat undang-undang di Indonesia adalah?\",\"\",\"\",\"\",\"\",\"DPR\",2.00\n";
-            $content .= "4,5,\"Jelaskan secara ringkas pengertian fotosintesis pada tumbuhan!\",\"\",\"\",\"\",\"\",\"Rubrik: proses pembuatan makanan oleh tumbuhan menggunakan sinar matahari\",3.00\n";
-
-            return response($content, 200, [
-                'Content-Type'        => 'text/csv; charset=UTF-8',
-                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-            ]);
+        if ($format === 'excel' || $format === 'xlsx') {
+            $path = public_path('uploads/import/format/format_soal.xlsx');
+            if (file_exists($path)) {
+                return response()->download($path, 'Template_Soal_CBT.xlsx');
+            }
         }
 
-        $filename = 'template_soal_word.doc';
-        $content = "FORMAT PENYUSUNAN SOAL WORD CBT\n\n";
-        $content .= "[SOAL PG]\n1. Ibukota Negara Indonesia yang baru adalah?\nA. Jakarta\nB. Nusantara (IKN)\nC. Surabaya\nD. Bandung\nE. Medan\nKUNCI: B\n\n";
-        $content .= "[SOAL ISIAN]\n2. Lembaga pembuat undang-undang adalah?\nKUNCI: DPR\n\n";
-        $content .= "[SOAL ESAI]\n3. Jelaskan proses fotosintesis pada tumbuhan!\nPANDUAN: Proses pembuatan makanan dengan sinar matahari.\n";
-
-        return response($content, 200, [
-            'Content-Type'        => 'application/msword; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ]);
+        // Format resmi Garuda CBT: format_soal_akm.docx
+        $path = public_path('uploads/import/format/format_soal_akm.docx');
+        return response()->download($path, 'Template_Soal_Garuda_CBT.docx');
     }
 
     /**
-     * Proses import file CSV butir soal ke bank soal.
+     * Proses import file Excel / Word butir soal ke bank soal.
      */
     public function importSoal(Request $request, int $bankId): RedirectResponse
     {
         $request->validate([
-            'file_soal' => 'required|file|mimes:csv,txt|max:5120',
+            'file_soal' => 'required|file|max:10240',
         ]);
 
         $bank = CbtBankSoal::findOrFail($bankId);
         $file = $request->file('file_soal');
+        $ext = strtolower($file->getClientOriginalExtension());
         $path = $file->getRealPath();
 
-        $rows = array_map('str_getcsv', file($path));
+        // 1. Penanganan format Microsoft Word (.docx) resmi format AKM
+        if ($ext === 'docx') {
+            $parsedSoals = $this->parseDocxSoal($path);
+            if (empty($parsedSoals)) {
+                return back()->with('error', 'Tidak ditemukan butir soal yang valid dalam berkas Word. Pastikan menggunakan template resmi.');
+            }
+
+            $maxNomor = CbtSoal::where('bank_id', $bankId)->max('nomor_soal') ?? 0;
+            $count = 0;
+
+            DB::transaction(function () use ($parsedSoals, $bankId, &$maxNomor, &$count) {
+                foreach ($parsedSoals as $s) {
+                    $maxNomor++;
+                    $s['bank_id'] = $bankId;
+                    $s['nomor_soal'] = $maxNomor;
+                    $s['created_on'] = time();
+                    $s['updated_on'] = time();
+                    CbtSoal::create($s);
+                    $count++;
+                }
+            });
+
+            return redirect()->route('admin.cbt.bank_soal.show', $bankId)
+                ->with('success', "Sebanyak {$count} butir soal dari dokumen Word berhasil diimport ke dalam Bank Soal.");
+        }
+
+        // 2. Penanganan format Spreadsheet Excel (.xlsx, .xls) dan CSV
+        $rows = [];
+
+        if (in_array($ext, ['xlsx', 'xls'])) {
+            try {
+                $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($path);
+                $worksheet = $spreadsheet->getActiveSheet();
+                $rows = $worksheet->toArray();
+            } catch (\Throwable $e) {
+                return back()->with('error', 'Gagal membaca berkas Excel: ' . $e->getMessage());
+            }
+        } elseif ($ext === 'csv' || $ext === 'txt') {
+            $rows = array_map('str_getcsv', file($path));
+        } else {
+            return back()->with('error', 'Format file harus berupa Excel (.xlsx, .xls) atau Word (.docx).');
+        }
+
         if (count($rows) < 2) {
             return back()->with('error', 'File template kosong atau format tidak sesuai.');
         }
@@ -969,45 +998,196 @@ class CbtBankSoalController extends Controller
         $count = 0;
 
         DB::transaction(function () use ($rows, $bankId, &$maxNomor, &$count) {
+            $currentSoal = null;
+
             foreach ($rows as $row) {
-                if (empty($row) || count($row) < 3) continue;
+                if (empty($row) || !array_filter($row)) continue;
 
-                $maxNomor++;
-                $jenis = isset($row[1]) && is_numeric($row[1]) ? (int) $row[1] : 1;
-                $pertanyaan = $row[2] ?? '';
-                $opsiA = $row[3] ?? null;
-                $opsiB = $row[4] ?? null;
-                $opsiC = $row[5] ?? null;
-                $opsiD = $row[6] ?? null;
-                $opsiE = $row[7] ?? null;
-                $kunci = $row[8] ?? '';
-                $bobot = isset($row[9]) && is_numeric($row[9]) ? (float) $row[9] : 1.00;
+                $no = trim((string)($row[0] ?? ''));
+                $jenis = isset($row[1]) && is_numeric($row[1]) ? (int)$row[1] : 1;
+                $soalText = trim((string)($row[2] ?? ''));
+                $opsi = strtoupper(trim((string)($row[3] ?? '')));
+                $jawaban = trim((string)($row[4] ?? ''));
+                $kunci = trim((string)($row[5] ?? ''));
+                $bobot = isset($row[6]) && is_numeric($row[6]) ? (float)$row[6] : 1.00;
 
-                if (!empty(trim($pertanyaan))) {
-                    CbtSoal::create([
+                // Jika baris memiliki nomor atau soal baru
+                if (!empty($no) || !empty($soalText)) {
+                    if ($currentSoal !== null && !empty($currentSoal['soal'])) {
+                        CbtSoal::create($currentSoal);
+                        $count++;
+                    }
+
+                    $maxNomor++;
+                    $currentSoal = [
                         'bank_id'    => $bankId,
                         'nomor_soal' => $maxNomor,
                         'jenis'      => $jenis,
                         'jenis_soal' => $jenis,
-                        'soal'       => $pertanyaan,
-                        'opsi_a'     => $opsiA,
-                        'opsi_b'     => $opsiB,
-                        'opsi_c'     => $opsiC,
-                        'opsi_d'     => $opsiD,
-                        'opsi_e'     => $opsiE,
-                        'jawaban'    => $kunci,
+                        'soal'       => $soalText,
+                        'opsi_a'     => null,
+                        'opsi_b'     => null,
+                        'opsi_c'     => null,
+                        'opsi_d'     => null,
+                        'opsi_e'     => null,
+                        'jawaban'    => '',
                         'bobot'      => $bobot,
                         'tampilkan'  => 1,
                         'created_on' => time(),
                         'updated_on' => time(),
-                    ]);
-                    $count++;
+                    ];
                 }
+
+                if ($currentSoal !== null) {
+                    if ($opsi === 'A') $currentSoal['opsi_a'] = $jawaban;
+                    elseif ($opsi === 'B') $currentSoal['opsi_b'] = $jawaban;
+                    elseif ($opsi === 'C') $currentSoal['opsi_c'] = $jawaban;
+                    elseif ($opsi === 'D') $currentSoal['opsi_d'] = $jawaban;
+                    elseif ($opsi === 'E') $currentSoal['opsi_e'] = $jawaban;
+
+                    if (in_array(strtolower($kunci), ['v', 'true', '1', 'benar']) && !empty($opsi)) {
+                        if ($currentSoal['jenis'] == 2) {
+                            $existing = array_filter(explode(',', $currentSoal['jawaban']));
+                            $existing[] = $opsi;
+                            $currentSoal['jawaban'] = implode(',', array_unique($existing));
+                        } else {
+                            $currentSoal['jawaban'] = $opsi;
+                        }
+                    } elseif (!empty($kunci) && empty($currentSoal['jawaban'])) {
+                        $currentSoal['jawaban'] = $kunci;
+                    }
+                }
+            }
+
+            if ($currentSoal !== null && !empty($currentSoal['soal'])) {
+                CbtSoal::create($currentSoal);
+                $count++;
             }
         });
 
         return redirect()->route('admin.cbt.bank_soal.show', $bankId)
             ->with('success', "Sebanyak {$count} butir soal berhasil diimport ke dalam Bank Soal.");
+    }
+
+    /**
+     * Parsing butir soal dari dokumen Word (.docx) resmi format AKM Garuda CBT.
+     */
+    protected function parseDocxSoal(string $filePath): array
+    {
+        $zip = new \ZipArchive();
+        if ($zip->open($filePath) !== true) {
+            return [];
+        }
+
+        $xml = $zip->getFromName('word/document.xml');
+        $zip->close();
+        if (!$xml) return [];
+
+        $doc = new \DOMDocument();
+        @$doc->loadXML($xml);
+        $tables = $doc->getElementsByTagName('tbl');
+
+        $soalList = [];
+
+        foreach ($tables as $ti => $table) {
+            $rows = $table->getElementsByTagName('tr');
+            if ($rows->length < 2) continue;
+
+            $headerCells = [];
+            foreach ($rows->item(0)->getElementsByTagName('tc') as $c) {
+                $headerCells[] = strtoupper(trim($c->textContent));
+            }
+
+            // Tabel PG (Jenis 1) & PG Kompleks (Jenis 2)
+            if (in_array('OPSI', $headerCells) && in_array('JAWABAN', $headerCells) && in_array('KUNCI', $headerCells)) {
+                $currentSoal = null;
+                for ($r = 1; $r < $rows->length; $r++) {
+                    $cells = [];
+                    foreach ($rows->item($r)->getElementsByTagName('tc') as $c) {
+                        $cells[] = trim($c->textContent);
+                    }
+
+                    $no = $cells[0] ?? '';
+                    $soal = $cells[1] ?? '';
+                    $jenis = isset($cells[2]) && is_numeric($cells[2]) ? (int)$cells[2] : ($ti === 1 ? 2 : 1);
+                    $opsi = strtoupper($cells[3] ?? '');
+                    $jawaban = $cells[4] ?? '';
+                    $kunci = $cells[5] ?? '';
+
+                    if (!empty($no) || !empty($soal)) {
+                        if ($currentSoal !== null && !empty($currentSoal['soal'])) {
+                            $soalList[] = $currentSoal;
+                        }
+                        $currentSoal = [
+                            'jenis'      => $jenis,
+                            'jenis_soal' => $jenis,
+                            'soal'       => $soal,
+                            'opsi_a'     => null,
+                            'opsi_b'     => null,
+                            'opsi_c'     => null,
+                            'opsi_d'     => null,
+                            'opsi_e'     => null,
+                            'jawaban'    => '',
+                            'bobot'      => 1.0,
+                            'tampilkan'  => 1,
+                        ];
+                    }
+
+                    if ($currentSoal !== null) {
+                        if ($opsi === 'A') $currentSoal['opsi_a'] = $jawaban;
+                        elseif ($opsi === 'B') $currentSoal['opsi_b'] = $jawaban;
+                        elseif ($opsi === 'C') $currentSoal['opsi_c'] = $jawaban;
+                        elseif ($opsi === 'D') $currentSoal['opsi_d'] = $jawaban;
+                        elseif ($opsi === 'E') $currentSoal['opsi_e'] = $jawaban;
+
+                        if (in_array(strtolower($kunci), ['v', 'true', '1', 'benar']) && !empty($opsi)) {
+                            if ($currentSoal['jenis'] == 2) {
+                                $existing = array_filter(explode(',', $currentSoal['jawaban']));
+                                $existing[] = $opsi;
+                                $currentSoal['jawaban'] = implode(',', array_unique($existing));
+                            } else {
+                                $currentSoal['jawaban'] = $opsi;
+                            }
+                        } elseif (!empty($kunci) && empty($currentSoal['jawaban'])) {
+                            $currentSoal['jawaban'] = $kunci;
+                        }
+                    }
+                }
+                if ($currentSoal !== null && !empty($currentSoal['soal'])) {
+                    $soalList[] = $currentSoal;
+                }
+            }
+            // Tabel Isian Singkat (Jenis 4) & Uraian / Essai (Jenis 5)
+            elseif (in_array('JAWABAN', $headerCells) && !in_array('OPSI', $headerCells)) {
+                for ($r = 1; $r < $rows->length; $r++) {
+                    $cells = [];
+                    foreach ($rows->item($r)->getElementsByTagName('tc') as $c) {
+                        $cells[] = trim($c->textContent);
+                    }
+                    $soal = $cells[1] ?? '';
+                    $jenis = isset($cells[2]) && is_numeric($cells[2]) ? (int)$cells[2] : ($ti === 3 ? 4 : 5);
+                    $jawaban = $cells[3] ?? '';
+
+                    if (!empty($soal)) {
+                        $soalList[] = [
+                            'jenis'      => $jenis,
+                            'jenis_soal' => $jenis,
+                            'soal'       => $soal,
+                            'opsi_a'     => null,
+                            'opsi_b'     => null,
+                            'opsi_c'     => null,
+                            'opsi_d'     => null,
+                            'opsi_e'     => null,
+                            'jawaban'    => $jawaban,
+                            'bobot'      => 1.0,
+                            'tampilkan'  => 1,
+                        ];
+                    }
+                }
+            }
+        }
+
+        return $soalList;
     }
 
     /**

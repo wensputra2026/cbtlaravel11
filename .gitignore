@@ -35,3 +35,4 @@ Akun Admin Utama.txt
 !/storage/framework/views/.gitignore
 /storage/logs/*
 !/storage/logs/.gitignore
+scratch/

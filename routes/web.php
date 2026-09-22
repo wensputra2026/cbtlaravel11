@@ -85,6 +85,14 @@ Route::middleware(['auth'])->group(function () {
 
             Route::get('/mapel', [MasterDataController::class, 'indexMapel'])->name('mapel');
             Route::post('/mapel', [MasterDataController::class, 'storeMapel'])->name('mapel.store');
+            Route::put('/mapel/{id}', [MasterDataController::class, 'updateMapel'])->name('mapel.update');
+            Route::post('/mapel/update/{id}', [MasterDataController::class, 'updateMapel'])->name('mapel.update.post');
+            Route::delete('/mapel/{id}', [MasterDataController::class, 'destroyMapel'])->name('mapel.destroy');
+            Route::post('/mapel/delete/{id}', [MasterDataController::class, 'destroyMapel'])->name('mapel.delete.post');
+            Route::post('/mapel/toggle-status/{id}', [MasterDataController::class, 'toggleStatusMapel'])->name('mapel.toggle_status');
+            Route::post('/mapel/kelompok', [MasterDataController::class, 'storeKelompokMapel'])->name('mapel.kelompok.store');
+            Route::delete('/mapel/kelompok/{id}', [MasterDataController::class, 'destroyKelompokMapel'])->name('mapel.kelompok.destroy');
+            Route::post('/mapel/kelompok/delete/{id}', [MasterDataController::class, 'destroyKelompokMapel'])->name('mapel.kelompok.delete.post');
             Route::post('/mapel/import', [MasterDataController::class, 'importMapel'])->name('mapel.import');
 
             Route::get('/guru', [MasterDataController::class, 'indexGuru'])->name('guru');
