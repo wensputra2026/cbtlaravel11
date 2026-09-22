@@ -46,8 +46,6 @@ return new class extends Migration
                 $table->timestamps();
 
                 $table->unique(['jadwal_id', 'siswa_id']);
-                $table->foreign('jadwal_id')->references('id')->on('cbt_jadwal_clean')->cascadeOnDelete();
-                $table->foreign('siswa_id')->references('id')->on('siswa')->cascadeOnDelete();
             });
         }
 
@@ -63,9 +61,6 @@ return new class extends Migration
                 $table->timestamps();
 
                 $table->unique(['jadwal_id', 'siswa_id', 'soal_id']);
-                $table->foreign('jadwal_id')->references('id')->on('cbt_jadwal_clean')->cascadeOnDelete();
-                $table->foreign('siswa_id')->references('id')->on('siswa')->cascadeOnDelete();
-                $table->foreign('soal_id')->references('id')->on('cbt_soal_clean')->cascadeOnDelete();
             });
         }
     }
